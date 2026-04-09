@@ -289,7 +289,7 @@ export default function App() {
   return (
     <div>
       <GlobalModal modal={modal} closeModal={closeModal} t={t} />
-      <Navbar currentUser={currentUser} handleLogout={handleLogout} lang={lang} setLang={setLang} currentView={currentView} setCurrentView={setCurrentView} t={t} />
+      <Navbar currentUser={currentUser} userRole={userRole} handleLogout={handleLogout} lang={lang} setLang={setLang} currentView={currentView} setCurrentView={setCurrentView} t={t} />
 
       {currentView === 'dashboard' && <Dashboard t={t} lang={lang} shelves={shelves} turnoverItems={turnoverItems} showAlert={showAlert} />}
       {currentView === 'zebra' && <ZebraScanner t={t} currentUser={currentUser} />}
