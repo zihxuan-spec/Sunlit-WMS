@@ -53,6 +53,10 @@ export const dict = {
     msgPalletNotFound: "⚠️ Pallet not found in Turnover!", 
     msgInvalidPallet: "⚠️ Does not match any Pallet Rule!",
     msgSplitSuccess: "✅ Pallet split successful! Child drums added to Turnover.",
+  navMES: "⚙️ MES 生產執行", navReusable: "♻️ 循環包材追蹤",
+  mesPending: "📝 待生產 (Pending)", mesProcessing: "🔄 生產中 (In Processing)", mesCompleted: "✅ 已完成 (Completed)",
+  stepIntCleaning: "🧹 內部清洗 (Int. Cleaning)", stepFilling: "⚖️ 充填作業 (Filling)", stepDumpTest: "🧪 傾倒測試 (Dump Test)", stepPackaging: "📦 棧板包裝 (Packaging)",
+  msgPackLimit: "⚠️ 一個棧板最多只能裝 {n} 桶！",
   },
   zh: {
     appTitle: "🏢 總廠智慧 WMS", loginTitle: "🔐 系統登入", loginDesc: "請輸入建檔的員工姓名或編號",
@@ -107,5 +111,9 @@ export const dict = {
     msgPalletNotFound: "⚠️ 在週轉倉清單中找不到此棧板！", 
     msgInvalidPallet: "⚠️ 此條碼不符合任何棧板前綴規則！",
     msgSplitSuccess: "✅ 棧板拆解完成！子包材已進入週轉倉。",
+    navMES: "⚙️ MES", navReusable: "♻️ Reusable Tracking",
+    mesPending: "📝 Pending", mesProcessing: "🔄 In Processing", mesCompleted: "✅ Completed",
+    stepIntCleaning: "🧹 Int. Cleaning", stepFilling: "⚖️ Filling", stepDumpTest: "🧪 Dump Test", stepPackaging: "📦 Packaging",
+    msgPackLimit: "⚠️ Max {n} drums per pallet!",
   }
 };
