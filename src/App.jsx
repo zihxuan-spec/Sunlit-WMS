@@ -284,7 +284,7 @@ export default function App() {
   };
 
   // Render -----------------------------
-  if (!currentUser) return <><Login onLogin={(name, role) => { setCurrentUser(name); setUserRole(role); }} t={t} lang={lang} setLang={setLang} showAlert={showAlert} />;
+  if (!currentUser) return <><Login onLogin={(name, role) => { setCurrentUser(name); setUserRole(role); }} t={t} lang={lang} setLang={setLang} showAlert={showAlert} /><GlobalModal modal={modal} closeModal={closeModal} t={t} /></>;
 
   return (
     <div>
