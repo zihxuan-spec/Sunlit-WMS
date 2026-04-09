@@ -46,6 +46,13 @@ export const dict = {
     msgReturnSouthToTurnoverConfirm: "Return {n} selected finished goods back to Turnover? (Batch numbers will be removed)",
     smartTransferTitle: "🧠 FIFO Transfer", categoryStr: "Category", qtyStr: "Req. Qty",
     btnSmartSelect: "Auto Select Oldest", msgInsufficientStock: "⚠️ Insufficient stock! Only {n} available drum(s) grabbed."
+    btnExtCleaning: "🧹 External Cleaning (Split)", 
+    extCleanTitle: "📦 Split Pallet", 
+    extCleanScanPallet: "Scan Parent Pallet Barcode...", 
+    extCleanScanChild: "Scan Child Drum ({current}/{total})...", 
+    msgPalletNotFound: "⚠️ Pallet not found in Turnover!", 
+    msgInvalidPallet: "⚠️ Does not match any Pallet Rule!",
+    msgSplitSuccess: "✅ Pallet split successful! Child drums added to Turnover.",
   },
   zh: {
     appTitle: "🏢 總廠智慧 WMS", loginTitle: "🔐 系統登入", loginDesc: "請輸入建檔的員工姓名或編號",
@@ -93,5 +100,12 @@ export const dict = {
     msgReturnSouthToTurnoverConfirm: "確定將選取的 {n} 件成品取消出貨，退回【週轉加工區】嗎？\n(注意：系統將會撕除它們的成品批號，還原為獨立桶號)",
     smartTransferTitle: "🧠 智能先進先出 (FIFO) 備料", categoryStr: "產品類別：", qtyStr: "需求數量：",
     btnSmartSelect: "自動抓取最舊庫存", msgInsufficientStock: "⚠️ 庫存不足！該類別僅剩餘 {n} 桶，已全部為您抓取。"
+    btnExtCleaning: "🧹 拆棧板 (External Cleaning)", 
+    extCleanTitle: "📦 棧板拆分作業", 
+    extCleanScanPallet: "請輸入或掃描母棧板條碼...", 
+    extCleanScanChild: "請掃描子包材/桶號 ({current}/{total})...", 
+    msgPalletNotFound: "⚠️ 在週轉倉清單中找不到此棧板！", 
+    msgInvalidPallet: "⚠️ 此條碼不符合任何棧板前綴規則！",
+    msgSplitSuccess: "✅ 棧板拆解完成！子包材已進入週轉倉。",
   }
 };
