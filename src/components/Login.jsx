@@ -4,14 +4,21 @@ import { supabase } from '../config/supabaseClient';
 export default function Login({ onLogin, t, lang, setLang, showAlert }) {
   const [loginInput, setLoginInput] = useState('');
 
-  const { data, error } = await supabase
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    const inputName = loginInput.trim();
+    if (!inputName) return;
+
+    // 查詢員工資料表，同時抓取 role
+    const { data, error } = await supabase
       .from('employees')
-      .select('name, role') // 👈 這裡多加了 , role
+      .select('name, role')
       .eq('name', inputName)
       .single();
 
     if (data) {
-      onLogin(data.name, data.role || 'Warehouse'); // 👈 這裡把 role 傳出去
+      // 成功登入，將 name 與 role 傳回 App.jsx
+      onLogin(data.name, data.role || 'Warehouse');
     } else {
       showAlert(t.msgInvalidUser);
     }
