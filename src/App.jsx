@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './config/supabaseClient';
 import { dict } from './config/i18n';
+import MES from './pages/MES';
 
 // 引入元件
 import Login from './components/Login';
@@ -18,7 +19,8 @@ import ZebraScanner from './pages/ZebraScanner';
 export default function App() {
   const [lang, setLang] = useState('en'); 
   const t = dict[lang];
-  const [currentUser, setCurrentUser] = useState(null); 
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userRole, setUserRole] = useState('Warehouse');
   const [currentView, setCurrentView] = useState('dashboard'); 
 
   // Modal State
@@ -292,6 +294,7 @@ export default function App() {
       {currentView === 'dashboard' && <Dashboard t={t} lang={lang} shelves={shelves} turnoverItems={turnoverItems} showAlert={showAlert} />}
       {currentView === 'zebra' && <ZebraScanner t={t} currentUser={currentUser} />}
       {currentView === 'turnover' && <Turnover t={t} lang={lang} turnoverItems={turnoverItems} fetchTurnover={fetchTurnover} showAlert={showAlert} showConfirm={showConfirm} setPendingItems={setPendingItems} setOutboundAssignItems={setOutboundAssignItems} setCurrentView={setCurrentView} setActiveWarehouse={setActiveWarehouse} />}
+      {currentView === 'mes' && <MES t={t} lang={lang} currentUser={currentUser} showAlert={showAlert} />}
       
       {currentView === 'inbound' && (
         <Inbound 
