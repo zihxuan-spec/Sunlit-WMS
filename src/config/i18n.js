@@ -45,7 +45,7 @@ export const dict = {
     msgRemoveOutboundAssignControl: "⚠️ To prevent inventory loss, the {n} cancelled finished goods will be automatically returned to the Turnover Warehouse. Continue?",
     msgReturnSouthToTurnoverConfirm: "Return {n} selected finished goods back to Turnover? (Batch numbers will be removed)",
     smartTransferTitle: "🧠 FIFO Transfer", categoryStr: "Category", qtyStr: "Req. Qty",
-    btnSmartSelect: "Auto Select Oldest", msgInsufficientStock: "⚠️ Insufficient stock! Only {n} available drum(s) grabbed."
+    btnSmartSelect: "Auto Select Oldest", msgInsufficientStock: "⚠️ Insufficient stock! Only {n} available drum(s) grabbed.",
     btnExtCleaning: "🧹 External Cleaning (Split)", 
     extCleanTitle: "📦 Split Pallet", 
     extCleanScanPallet: "Scan Parent Pallet Barcode...", 
@@ -103,7 +103,7 @@ export const dict = {
     msgRemoveOutboundAssignControl: "⚠️ 為了防止庫存遺失，取消放置的 {n} 件成品將會自動退回【週轉加工區】。確定要執行嗎？",
     msgReturnSouthToTurnoverConfirm: "確定將選取的 {n} 件成品取消出貨，退回【週轉加工區】嗎？\n(注意：系統將會撕除它們的成品批號，還原為獨立桶號)",
     smartTransferTitle: "🧠 智能先進先出 (FIFO) 備料", categoryStr: "產品類別：", qtyStr: "需求數量：",
-    btnSmartSelect: "自動抓取最舊庫存", msgInsufficientStock: "⚠️ 庫存不足！該類別僅剩餘 {n} 桶，已全部為您抓取。"
+    btnSmartSelect: "自動抓取最舊庫存", msgInsufficientStock: "⚠️ 庫存不足！該類別僅剩餘 {n} 桶，已全部為您抓取。",
     btnExtCleaning: "🧹 拆棧板 (External Cleaning)", 
     extCleanTitle: "📦 棧板拆分作業", 
     extCleanScanPallet: "請輸入或掃描母棧板條碼...", 
