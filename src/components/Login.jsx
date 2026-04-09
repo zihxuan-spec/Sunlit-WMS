@@ -12,14 +12,13 @@ export default function Login({ onLogin, t, lang, setLang, showAlert }) {
     // 查詢員工資料表
     const { data, error } = await supabase
       .from('employees')
-      .select('name')
+      .select('name, role') // 👈 這裡多加了 role
       .eq('name', inputName)
       .single();
 
     if (data) {
-      onLogin(data.name);
-    } else {
-      showAlert(t.msgInvalidUser);
+      // 👈 把 name 和 role 一起傳出去。如果資料庫剛好沒填 role，預設給他 'Warehouse'
+      onLogin(data.name, data.role || 'Warehouse'); 
     }
   };
 
