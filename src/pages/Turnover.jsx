@@ -16,16 +16,21 @@ export default function Turnover({ t, lang, turnoverItems, fetchTurnover, showAl
   };
 
   const handleStartProcess = () => {
-    if (selectedIds.length === 0) return showAlert(t.msgSelectFirst);
-    const items = turnoverItems.filter(i => selectedIds.includes(i.id));
-    
-    // 檢查：只有 status 為 'raw' (原料) 的桶子才能進行清潔
-    if (items.some(i => i.status !== 'raw')) return showAlert("⚠️ 只有【原料】狀態的項目可以執行清潔！");
-    
-    setProcessingItems(items);
-    setBatchNoInput('');
-    setBatchModal(true);
-  };
+  if (selectedIds.length === 0) return showAlert(t.msgSelectFirst);
+  
+  const items = turnoverItems.filter(i => selectedIds.includes(i.id));
+  
+  // 💡 修改判定：只要是還沒被賦予批號 (batch_no) 的桶子，就視為原料，可以進行清潔
+  const hasInProcessItems = items.some(i => i.batch_no && i.status !== 'raw');
+  
+  if (hasInProcessItems) {
+    return showAlert("⚠️ 選中的項目中包含已在生產或已完成的批次，無法重複清潔！");
+  }
+  
+  setProcessingItems(items);
+  setBatchNoInput('');
+  setBatchModal(true); // 👈 確保這行有執行，視窗才會跳出來
+};
 
   const confirmBatchAndStartScan = (e) => {
     e.preventDefault();
