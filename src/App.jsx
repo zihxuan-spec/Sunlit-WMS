@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './config/supabaseClient';
 import { dict } from './config/i18n';
 import MES from './pages/MES';
+import ReusableTracking from './pages/ReusableTracking';
 
 // 引入元件
 import Login from './components/Login';
@@ -304,6 +305,7 @@ export default function App() {
       {currentView === 'zebra' && <ZebraScanner t={t} currentUser={currentUser} />}
       {currentView === 'turnover' && <Turnover t={t} lang={lang} turnoverItems={turnoverItems} fetchTurnover={fetchTurnover} showAlert={showAlert} showConfirm={showConfirm} setPendingItems={setPendingItems} setOutboundAssignItems={setOutboundAssignItems} setCurrentView={setCurrentView} setActiveWarehouse={setActiveWarehouse} />}
       {currentView === 'mes' && <MES t={t} lang={lang} currentUser={currentUser} showAlert={showAlert} />}
+      {currentView === 'reusable' && <ReusableTracking t={t} lang={lang} showAlert={showAlert} />}
       
       {currentView === 'inbound' && (
         <Inbound 
