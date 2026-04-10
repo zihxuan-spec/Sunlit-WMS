@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../config/supabaseClient';
 
-export default function MES({ currentUser }) {
+export default function MES({ currentUser, refreshGlobal }) {
   const [batches, setBatches] = useState({ pending: [], processing: [], completed: [] });
   const [activeBatch, setActiveBatch] = useState(null); 
   const [steps, setSteps] = useState([]);
@@ -48,7 +48,7 @@ export default function MES({ currentUser }) {
     const input = scanInput.trim().toUpperCase();
     if (steps[currentStepIdx]?.step_name.includes('Filling') && (!formData.workOrder || !formData.gunNumber)) return alert("⚠️ 請先填寫單號/槍號");
     const match = containers.find(c => c.barcode === input);
-    if (!match) return alert("❌ 不在批次中");
+    if (!match) return alert("❌ 不在此批次中");
     if (!scannedList.includes(input)) setScannedList([...scannedList, input]);
     setScanInput('');
   };
@@ -57,28 +57,25 @@ export default function MES({ currentUser }) {
     if (scannedList.length < containers.length) return alert("⚠️ 未完成校驗");
     const currentStep = steps[currentStepIdx];
 
-    // Filling 重量存入
     if (currentStep.step_name.includes('Filling')) {
       for (const bc of scannedList) {
         const w = weightData[bc] || {};
-        await supabase.from('production_containers').update({ weight_empty: w.empty, weight_setting: w.setting, weight_filling: w.filling }).eq('batch_no', activeBatch.batch_no).eq('barcode', bc);
+        await supabase.from('production_containers').update({ weight_empty: w.empty, weight_setting: w.setting, weight_filling: w.filling, current_step: currentStepIdx + 2 }).eq('batch_no', activeBatch.batch_no).eq('barcode', bc);
       }
     }
 
-    // Packaging 完工與 Turnover 連動
     if (currentStep.step_name.includes('Packaging')) {
       const rule = palletRules.find(r => activeBatch.material_code.startsWith(r.prefix));
       if (rule && !formData.newPallet) return alert("⚠️ 請輸入棧板號");
       
       await supabase.from('production_batches').update({ status: 'completed' }).eq('batch_no', activeBatch.batch_no);
-      // 🔥 同步回寫 Turnover 看板
       await supabase.from('turnover_inventory').update({ status: 'completed' }).eq('batch_no', activeBatch.batch_no);
 
       if (rule) {
         await supabase.from('pallet_container_map').insert(containers.map(c => ({ parent_pallet: formData.newPallet, child_barcode: c.barcode, action_type: 'PACK', operator: currentUser })));
       }
-      alert("✅ 生產程序完成！");
-      setActiveBatch(null); fetchBatches(); return;
+      alert("✅ 生產完工！已同步更新週轉倉狀態");
+      setActiveBatch(null); fetchBatches(); if (refreshGlobal) refreshGlobal(); return;
     }
     setCurrentStepIdx(prev => prev + 1); setScannedList([]);
   };
@@ -98,7 +95,6 @@ export default function MES({ currentUser }) {
           </div>
         ))}
       </div>
-
       {activeBatch && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
           <div style={{ background: '#fff', width: '90%', maxWidth: '700px', borderRadius: '15px', padding: '30px', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -106,7 +102,12 @@ export default function MES({ currentUser }) {
               <h3 style={{ margin: 0, color: '#1976d2' }}>{steps[currentStepIdx]?.step_name}</h3>
               <button onClick={() => setActiveBatch(null)} className="btn-secondary">Close</button>
             </div>
-
+            {steps[currentStepIdx]?.step_name.includes('Filling') && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                <div><label>Work Order</label><input type="text" className="input-field" value={formData.workOrder} onChange={e => setFormData({...formData, workOrder: e.target.value})} /></div>
+                <div><label>Gun Number</label><input type="text" className="input-field" value={formData.gunNumber} onChange={e => setFormData({...formData, gunNumber: e.target.value})} /></div>
+              </div>
+            )}
             <div style={{ border: '2px solid #f44336', padding: '20px', borderRadius: '10px', marginBottom: '20px' }}>
               <form onSubmit={handleVerify}><input type="text" className="input-field" value={scanInput} onChange={e => setScanInput(e.target.value.toUpperCase())} autoFocus placeholder="掃描校驗桶號..." /></form>
               <div style={{ marginTop: '10px' }}>
@@ -114,8 +115,9 @@ export default function MES({ currentUser }) {
                   <div key={c.id} style={{ borderBottom: '1px solid #eee', padding: '10px 0' }}>
                     {scannedList.includes(c.barcode) ? '✅' : '⚪'} {c.barcode}
                     {scannedList.includes(c.barcode) && steps[currentStepIdx]?.step_name.includes('Filling') && (
-                      <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginTop: '5px' }}>
                         <input type="number" placeholder="空重" className="input-field" onChange={e => setWeightData({...weightData, [c.barcode]: {...weightData[c.barcode], empty: e.target.value}})} />
+                        <input type="number" placeholder="設定重" className="input-field" onChange={e => setWeightData({...weightData, [c.barcode]: {...weightData[c.barcode], setting: e.target.value}})} />
                         <input type="number" placeholder="充填重" className="input-field" onChange={e => setWeightData({...weightData, [c.barcode]: {...weightData[c.barcode], filling: e.target.value}})} />
                       </div>
                     )}
@@ -123,7 +125,6 @@ export default function MES({ currentUser }) {
                 ))}
               </div>
             </div>
-
             {steps[currentStepIdx]?.step_name.includes('Packaging') && palletRules.some(r => activeBatch.material_code.startsWith(r.prefix)) && (
               <input type="text" className="input-field" value={formData.newPallet} onChange={e => setFormData({...formData, newPallet: e.target.value.toUpperCase()})} placeholder="輸入新棧板條碼..." />
             )}
