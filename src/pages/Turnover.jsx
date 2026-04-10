@@ -20,34 +20,38 @@ export default function Turnover({ t, lang, turnoverItems, fetchTurnover, showAl
 
   // 核心邏輯：處理 External Cleaning 的掃描動作
   const handleScanSubmit = async (e) => {
-    e.preventDefault();
-    const barcode = scanInput.trim();
-    if (!barcode) return;
+  e.preventDefault();
+  const barcode = scanInput.trim();
+  if (!barcode) return;
 
-    // 1. 檢查此條碼是否在當前 Turnover 清單中
-    const turnoverItem = turnoverItems.find(i => i.product_barcode === barcode);
-    if (!turnoverItem && !currentPallet) {
-      return showAlert(t.msgPalletNotFound);
+  // 1. 先確認該條碼是否存在於 Turnover 清單
+  const turnoverItem = turnoverItems.find(i => i.product_barcode === barcode);
+  if (!turnoverItem && !currentPallet) {
+    return showAlert(t.msgPalletNotFound);
+  }
+
+  // 2. 自動判斷：是「棧板」還是「單桶」？
+  if (!currentPallet) {
+    const matchedRule = palletRules.find(rule => barcode.startsWith(rule.prefix));
+
+    if (matchedRule) {
+      // 【情況 B：棧板】進入拆棧板模式
+      setCurrentPallet({ 
+        barcode: barcode, 
+        requiredQty: matchedRule.qty_per_pallet,
+        item: turnoverItem 
+      });
+      setScanInput('');
+    } else {
+      // 【情況 A：單一包材】直接跳確認框，不進拆棧板流程
+      setExtCleanModal(false); // 關閉掃描窗
+      showConfirm(`偵測到單桶【${barcode}】，確認執行 External Cleaning 並送入生產？`, async () => {
+        await executeSingleCleaning(barcode);
+      });
+      setScanInput('');
     }
-
-    // 2. 判斷分支：如果是第一棒掃描，決定是「單桶」還是「棧板」
-    if (!currentPallet) {
-      const matchedRule = palletRules.find(rule => barcode.startsWith(rule.prefix));
-
-      if (!matchedRule) {
-        // 【情況 A：單一包材】
-        handleSingleCleaning(barcode, turnoverItem);
-      } else {
-        // 【情況 B：棧板】進入拆棧板模式
-        setCurrentPallet({ 
-          barcode: barcode, 
-          requiredQty: matchedRule.qty_per_pallet,
-          item: turnoverItem 
-        });
-        setScanInput('');
-      }
-      return;
-    }
+    return;
+  }
 
     // 3. 棧板模式下的子包材掃描邏輯
     if (barcode === currentPallet.barcode) return setScanInput(''); // 避免重複掃母棧板
