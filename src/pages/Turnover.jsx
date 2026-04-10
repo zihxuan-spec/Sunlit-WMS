@@ -3,105 +3,94 @@ import { supabase } from '../config/supabaseClient';
 
 export default function Turnover({ t, lang, turnoverItems, fetchTurnover, showAlert, showConfirm, currentUser }) {
   const [selectedIds, setSelectedIds] = useState([]);
-  const [extCleanModal, setExtCleanModal] = useState(false);
-  const [scanInput, setScanInput] = useState('');
-  const [palletRules, setPalletRules] = useState([]);
+  const [batchModal, setBatchModal] = useState(false); // 第一步：輸入 Batch 視窗
+  const [cleanModal, setCleanModal] = useState(false); // 第二步：逐桶掃描視窗
   
-  // 當前正在處理的對象（單桶或棧板）
-  const [processingItem, setProcessingItem] = useState(null); 
-  const [scannedChildren, setScannedChildren] = useState([]);
+  const [batchNoInput, setBatchNoInput] = useState('');
+  const [processingItems, setProcessingItems] = useState([]); // 當前批次包含的所有桶子
+  const [scannedItems, setScannedItems] = useState([]); // 已成功掃描確認的桶子
+  const [scanInput, setScanInput] = useState('');
 
-  useEffect(() => {
-    const fetchRules = async () => {
-      const { data } = await supabase.from('pallet_barcode_rules').select('*');
-      if (data) setPalletRules(data);
-    };
-    fetchRules();
-  }, []);
-
+  // 1. 處理勾選邏輯
   const toggleSelect = (id) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
-  // 開啟掃描視窗前的檢查
-  const handleOpenModal = () => {
+  // 2. 點擊「外部清潔」按鈕：進入批號輸入階段
+  const handleStartProcess = () => {
     if (selectedIds.length === 0) return showAlert(t.msgSelectFirst);
-    if (selectedIds.length > 1) return showAlert("⚠️ 請一次選擇一個項目進行清潔掃描");
-
-    const item = turnoverItems.find(i => i.id === selectedIds[0]);
-    const matchedRule = palletRules.find(rule => item.product_barcode.startsWith(rule.prefix));
-
-    setProcessingItem({
-      ...item,
-      isPallet: !!matchedRule,
-      requiredQty: matchedRule ? matchedRule.qty_per_pallet : 1 // 單桶只需掃 1 次
-    });
-    setExtCleanModal(true);
-    setScanInput('');
-    setScannedChildren([]);
+    
+    // 取得選中的完整物件清單
+    const items = turnoverItems.filter(i => selectedIds.includes(i.id));
+    setProcessingItems(items);
+    setBatchNoInput('');
+    setBatchModal(true);
   };
 
-  // 核心掃描邏輯
-  const handleScanProcess = async (e) => {
+  // 3. 確認批號後：進入掃描校驗階段
+  const confirmBatchAndStartScan = (e) => {
+    e.preventDefault();
+    if (!batchNoInput.trim()) return;
+    setBatchModal(false);
+    setCleanModal(true);
+    setScannedItems([]);
+    setScanInput('');
+  };
+
+  // 4. 核心掃描校驗邏輯
+  const handleVerifyScan = async (e) => {
     e.preventDefault();
     const barcode = scanInput.trim();
     if (!barcode) return;
 
-    if (!processingItem.isPallet) {
-      // -------------------------------------------------------
-      // 【情況 A：單一包材】強制驗證掃描內容是否一致
-      // -------------------------------------------------------
-      if (barcode !== processingItem.product_barcode) {
-        setScanInput('');
-        return showAlert("❌ 掃描條碼與選取項目不符！");
-      }
-      await executeSingleFinish(barcode);
-    } else {
-      // -------------------------------------------------------
-      // 【情況 B：棧板】掃描子桶
-      // -------------------------------------------------------
-      if (barcode === processingItem.product_barcode) return setScanInput(''); // 不能掃母棧板充數
-      if (scannedChildren.includes(barcode)) return setScanInput('');
-
-      const newChildren = [...scannedChildren, barcode];
-      setScannedChildren(newChildren);
+    // 檢查掃描的條碼是否在本次選取的處理清單中
+    const match = processingItems.find(item => item.product_barcode === barcode);
+    
+    if (!match) {
       setScanInput('');
+      return showAlert("❌ 此條碼不在此批次清單中！");
+    }
 
-      if (newChildren.length === processingItem.requiredQty) {
-        await executePalletFinish(processingItem.product_barcode, newChildren);
-      }
+    if (scannedItems.includes(barcode)) {
+      setScanInput('');
+      return; // 已經掃過了
+    }
+
+    const newScanned = [...scannedItems, barcode];
+    setScannedItems(newScanned);
+    setScanInput('');
+
+    // 當清單內所有桶號都掃描完成
+    if (newScanned.length === processingItems.length) {
+      await executeBatchCompletion(batchNoInput.trim(), processingItems);
     }
   };
 
-  // 單桶完工邏輯
-  const executeSingleFinish = async (barcode) => {
-    const newBatchNo = `BATCH-S-${barcode}-${Date.now().toString().slice(-4)}`;
-    // 1. 建立生產批次
-    await supabase.from('production_batches').insert([{ batch_no: newBatchNo, material_code: barcode.split('-')[0], status: 'pending' }]);
-    await supabase.from('production_containers').insert([{ batch_no: newBatchNo, barcode: barcode, current_step: 1 }]);
-    // 2. 扣除庫存
-    await supabase.from('turnover_inventory').delete().eq('product_barcode', barcode);
-    
-    finishAll(newBatchNo);
-  };
+  // 5. 資料庫寫入：建立 Batch 並移動庫存
+  const executeBatchCompletion = async (batchNo, items) => {
+    // A. 在生產表建立批次
+    const { error: batchErr } = await supabase.from('production_batches').insert([{
+      batch_no: batchNo,
+      material_code: items[0].product_barcode.split('-')[0], // 以第一桶前綴作為物料代碼
+      status: 'pending'
+    }]);
 
-  // 棧板完工邏輯
-  const executePalletFinish = async (parent, children) => {
-    const newBatchNo = `BATCH-P-${parent}-${Date.now().toString().slice(-4)}`;
-    // 1. 紀錄母子關聯
-    await supabase.from('pallet_container_map').insert(children.map(c => ({ parent_pallet: parent, child_barcode: c, action_type: 'SPLIT', operator: currentUser })));
-    // 2. 建立生產批次
-    await supabase.from('production_batches').insert([{ batch_no: newBatchNo, material_code: parent.split('-')[0], status: 'pending' }]);
-    await supabase.from('production_containers').insert(children.map(c => ({ batch_no: newBatchNo, barcode: c, current_step: 1 })));
-    // 3. 扣除庫存
-    await supabase.from('turnover_inventory').delete().eq('product_barcode', parent);
-    
-    finishAll(newBatchNo);
-  };
+    if (batchErr) return showAlert("❌ 批號重複或建立失敗！");
 
-  const finishAll = (batchNo) => {
-    showAlert(`✅ ${t.msgAutoSuccess} (${batchNo})`);
-    setExtCleanModal(false);
+    // B. 將所有桶子關聯至此批次
+    const containerRecords = items.map(item => ({
+      batch_no: batchNo,
+      barcode: item.product_barcode,
+      current_step: 1
+    }));
+    await supabase.from('production_containers').insert(containerRecords);
+
+    // C. 從週轉倉庫存移除
+    const itemIds = items.map(i => i.id);
+    await supabase.from('turnover_inventory').delete().in('id', itemIds);
+
+    showAlert(`✅ Batch ${batchNo} 已完成清潔並送入 MES Pending。`);
+    setCleanModal(false);
     setSelectedIds([]);
     fetchTurnover();
   };
@@ -110,7 +99,7 @@ export default function Turnover({ t, lang, turnoverItems, fetchTurnover, showAl
     <div className="card">
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
         <h2 style={{ color: '#c2185b' }}>🏭 {t.turnoverTitle} ({turnoverItems.length})</h2>
-        <button className="btn" style={{ background: '#9c27b0' }} onClick={handleOpenModal}>
+        <button className="btn" style={{ background: '#9c27b0', padding: '10px 20px', fontSize: '16px' }} onClick={handleStartProcess}>
           ✨ {t.btnExtCleaning}
         </button>
       </div>
@@ -119,7 +108,10 @@ export default function Turnover({ t, lang, turnoverItems, fetchTurnover, showAl
         <table className="history-table">
           <thead>
             <tr>
-              <th style={{ width: '40px' }}></th>
+              <th style={{ width: '40px' }}><input type="checkbox" onChange={(e) => {
+                if (e.target.checked) setSelectedIds(turnoverItems.map(i => i.id));
+                else setSelectedIds([]);
+              }} checked={selectedIds.length === turnoverItems.length && turnoverItems.length > 0} /></th>
               <th>Time</th>
               <th>Barcode/Batch</th>
               <th>Date</th>
@@ -131,7 +123,7 @@ export default function Turnover({ t, lang, turnoverItems, fetchTurnover, showAl
               <tr key={item.id} onClick={() => toggleSelect(item.id)} style={{ cursor: 'pointer', background: selectedIds.includes(item.id) ? '#fce4ec' : '' }}>
                 <td><input type="checkbox" checked={selectedIds.includes(item.id)} readOnly /></td>
                 <td>{new Date(item.added_at).toLocaleString()}</td>
-                <td style={{ fontWeight: 'bold' }}>📦 {item.product_barcode}</td>
+                <td style={{ fontWeight: 'bold', color: '#1565c2' }}>📦 {item.product_barcode}</td>
                 <td>📅 {item.batch_date}</td>
                 <td>👤 {item.added_by}</td>
               </tr>
@@ -140,38 +132,67 @@ export default function Turnover({ t, lang, turnoverItems, fetchTurnover, showAl
         </table>
       </div>
 
-      {extCleanModal && (
+      {/* 第一階段：輸入 Batch Number 視窗 */}
+      {batchModal && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '400px' }}>
-            <h3 style={{ color: '#9c27b0' }}>
-              {processingItem.isPallet ? `📦 ${t.extCleanTitle}` : `✨ External Cleaning`}
-            </h3>
-            <p>Target: <b>{processingItem.product_barcode}</b></p>
+            <h3 style={{ color: '#9c27b0' }}>🏷️ {t.batchModalTitle}</h3>
+            <p style={{ margin: '15px 0' }}>{t.batchModalDesc.replace('{n}', selectedIds.length)}</p>
+            <form onSubmit={confirmBatchAndStartScan}>
+              <input 
+                type="text" 
+                className="input-field" 
+                value={batchNoInput} 
+                onChange={e => setBatchNoInput(e.target.value.toUpperCase())} 
+                placeholder={t.batchInputPlaceholder}
+                autoFocus 
+                required 
+              />
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <button type="submit" className="btn" style={{ flex: 1 }}>{t.btnConfirm}</button>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setBatchModal(false)}>{t.btnCancel}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 第二階段：逐桶清潔掃描驗證視窗 */}
+      {cleanModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '450px' }}>
+            <h3 style={{ color: '#9c27b0' }}>🧼 {t.btnExtCleaning} (Batch: {batchNoInput})</h3>
             
-            <form onSubmit={handleScanProcess}>
-              <p>
-                {processingItem.isPallet 
-                  ? t.extCleanScanChild.replace('{current}', scannedChildren.length).replace('{total}', processingItem.requiredQty)
-                  : "請掃描桶號條碼以確認清潔..."}
-              </p>
-              
+            <div style={{ margin: '20px 0', textAlign: 'left', background: '#f5f5f5', padding: '15px', borderRadius: '8px' }}>
+              <p style={{ fontWeight: 'bold', marginBottom: '10px' }}>Progress: {scannedItems.length} / {processingItems.length}</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                {processingItems.map(item => (
+                  <div key={item.id} style={{ 
+                    padding: '5px 10px', 
+                    borderRadius: '4px', 
+                    border: '1px solid #ddd',
+                    background: scannedItems.includes(item.product_barcode) ? '#e8f5e9' : '#fff',
+                    color: scannedItems.includes(item.product_barcode) ? '#2e7d32' : '#333',
+                    textDecoration: scannedItems.includes(item.product_barcode) ? 'line-through' : 'none'
+                  }}>
+                    {scannedItems.includes(item.product_barcode) ? '✅' : '⭕'} {item.product_barcode}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <form onSubmit={handleVerifyScan}>
+              <p style={{ marginBottom: '10px' }}>請清潔並掃描桶號進行驗證：</p>
               <input 
                 type="text" 
                 className="input-field" 
                 value={scanInput} 
                 onChange={e => setScanInput(e.target.value.toUpperCase())} 
-                autoFocus 
                 placeholder="Waiting for scan..."
+                autoFocus 
               />
-
-              {processingItem.isPallet && (
-                <div style={{ marginTop: '10px', textAlign: 'left', maxHeight: '100px', overflowY: 'auto', fontSize: '13px' }}>
-                  {scannedChildren.map((c, i) => <div key={i}>✅ {c}</div>)}
-                </div>
-              )}
-
-              <button type="button" className="btn btn-secondary" style={{ width: '100%', marginTop: '20px' }} onClick={() => setExtCleanModal(false)}>
-                {t.btnCancel}
+              <button type="button" className="btn btn-secondary" style={{ width: '100%', marginTop: '20px' }} onClick={() => setCleanModal(false)}>
+                中斷操作 (暫存進度)
               </button>
             </form>
           </div>
