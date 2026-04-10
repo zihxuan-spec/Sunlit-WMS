@@ -1,22 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../config/supabaseClient';
 
-export default function Turnover({ 
-  t, lang, turnoverItems, fetchTurnover, showAlert, showConfirm, currentUser,
-  setPendingItems, setOutboundAssignItems, setCurrentView, setActiveWarehouse 
-}) {
-  const [selectedTurnover, setSelectedTurnover] = useState([]);
-  const [batchInputModal, setBatchInputModal] = useState({ isOpen: false });
-  const [batchTargetName, setBatchTargetName] = useState('');
-
-  // --- 拆棧板 (External Cleaning) 專用 State ---
+export default function Turnover({ t, lang, turnoverItems, fetchTurnover, showAlert, showConfirm, currentUser }) {
   const [extCleanModal, setExtCleanModal] = useState(false);
-  const [palletRules, setPalletRules] = useState([]);
   const [scanInput, setScanInput] = useState('');
-  const [currentPallet, setCurrentPallet] = useState(null); // { barcode, requiredQty }
+  const [palletRules, setPalletRules] = useState([]);
+  
+  // 拆棧板模式的狀態
+  const [currentPallet, setCurrentPallet] = useState(null); // { barcode, requiredQty, item }
   const [scannedChildren, setScannedChildren] = useState([]);
 
-  // 取得棧板規則
   useEffect(() => {
     const fetchRules = async () => {
       const { data } = await supabase.from('pallet_barcode_rules').select('*');
@@ -25,234 +18,194 @@ export default function Turnover({
     fetchRules();
   }, []);
 
-  const toggleTurnoverItem = (id) => {
-    setSelectedTurnover(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-  };
-  
-  const toggleAllTurnover = (e) => {
-    if (e.target.checked) setSelectedTurnover(turnoverItems.map(i => i.id));
-    else setSelectedTurnover([]);
-  };
+  // 核心邏輯：處理 External Cleaning 的掃描動作
+  const handleScanSubmit = async (e) => {
+    e.preventDefault();
+    const barcode = scanInput.trim();
+    if (!barcode) return;
 
-  // 原本的退回入庫與轉出貨邏輯...
-  const handleBulkReturnToInbound = () => {
-    if (selectedTurnover.length === 0) return showAlert(t.msgSelectFirst);
-    showConfirm(t.turnoverBulkInboundConfirm.replace('{n}', selectedTurnover.length), async () => {
-      const itemsToReturn = turnoverItems.filter(i => selectedTurnover.includes(i.id));
-      await supabase.from('turnover_inventory').delete().in('id', selectedTurnover);
-      fetchTurnover();
-      setPendingItems(prev => [...prev, ...itemsToReturn.map(i => i.product_barcode)]);
-      setSelectedTurnover([]);
-      setCurrentView('inbound');
-      setActiveWarehouse('North Warehouse');
-    });
-  };
-
-  const handleBulkReturnToOutbound = () => {
-    if (selectedTurnover.length === 0) return showAlert(t.msgSelectFirst);
-    setBatchInputModal({ isOpen: true });
-  };
-
-  const confirmBatchReturnToOutbound = async () => {
-    const batchName = batchTargetName.trim();
-    if (!batchName) return; 
-    const itemsToMove = turnoverItems.filter(i => selectedTurnover.includes(i.id));
-    await supabase.from('turnover_inventory').delete().in('id', selectedTurnover);
-    fetchTurnover();
-    const newAssigns = itemsToMove.map(i => ({ 
-        id: Date.now().toString() + '-' + Math.floor(Math.random() * 10000), 
-        barcode: i.product_barcode, batch_no: batchName 
-    }));
-    setOutboundAssignItems(prev => [...prev, ...newAssigns]);
-    setSelectedTurnover([]); setBatchInputModal({ isOpen: false }); setBatchTargetName('');
-    setCurrentView('outbound'); setActiveWarehouse('South Warehouse');
-  };
-
-  // --- 拆棧板掃描邏輯 ---
-  // --- 在 Turnover.jsx 的處理邏輯中 ---
-
-const handleScanSubmit = async (e) => {
-  e.preventDefault();
-  const barcode = scanInput.trim();
-  if (!barcode) return;
-
-  // 1. 判斷是否為棧板：讀取資料庫 pallet_barcode_rules 
-  if (!currentPallet) {
+    // 1. 檢查此條碼是否在當前 Turnover 清單中
     const turnoverItem = turnoverItems.find(i => i.product_barcode === barcode);
-    if (!turnoverItem) return showAlert(t.msgPalletNotFound);
+    if (!turnoverItem && !currentPallet) {
+      return showAlert(t.msgPalletNotFound);
+    }
 
-    const matchedRule = palletRules.find(rule => barcode.startsWith(rule.prefix));
-    if (!matchedRule) {
-      // 情況 A：單一包材，直接進入後續流程 
-      // 這裡可依需求實作單桶的 External Cleaning 邏輯
+    // 2. 判斷分支：如果是第一棒掃描，決定是「單桶」還是「棧板」
+    if (!currentPallet) {
+      const matchedRule = palletRules.find(rule => barcode.startsWith(rule.prefix));
+
+      if (!matchedRule) {
+        // 【情況 A：單一包材】
+        handleSingleCleaning(barcode, turnoverItem);
+      } else {
+        // 【情況 B：棧板】進入拆棧板模式
+        setCurrentPallet({ 
+          barcode: barcode, 
+          requiredQty: matchedRule.qty_per_pallet,
+          item: turnoverItem 
+        });
+        setScanInput('');
+      }
       return;
     }
 
-    // 情況 B：進入拆棧板模式 
-    setCurrentPallet({ barcode: barcode, requiredQty: matchedRule.qty_per_pallet, item: turnoverItem });
+    // 3. 棧板模式下的子包材掃描邏輯
+    if (barcode === currentPallet.barcode) return setScanInput(''); // 避免重複掃母棧板
+    if (scannedChildren.includes(barcode)) return setScanInput(''); 
+
+    const newChildren = [...scannedChildren, barcode];
+    setScannedChildren(newChildren);
     setScanInput('');
-    return;
-  }
 
-  // 2. 掃描子包材並記錄 
-  if (scannedChildren.includes(barcode)) return setScanInput('');
-  const newChildren = [...scannedChildren, barcode];
-  setScannedChildren(newChildren);
-  setScanInput('');
+    // 4. 掃滿數量，執行拆分與觸發 MES
+    if (newChildren.length === currentPallet.requiredQty) {
+      await executePalletSplit(currentPallet.barcode, newChildren);
+    }
+  };
 
-  // 3. 掃滿規定數量後執行拆分與觸發 MES 
-  if (newChildren.length === currentPallet.requiredQty) {
+  // 處理單一包材：直接進 MES
+  const handleSingleCleaning = async (barcode, item) => {
+    showConfirm(t.msgAutoConfirm.replace('{n}', 1).replace('{z}', 'MES Pending'), async () => {
+      const newBatchNo = `BATCH-S-${barcode}-${Date.now().toString().slice(-4)}`;
+      
+      // 建立生產批次
+      await supabase.from('production_batches').insert([{
+        batch_no: newBatchNo,
+        material_code: barcode.split('-')[0],
+        status: 'pending'
+      }]);
+
+      await supabase.from('production_containers').insert([{
+        batch_no: newBatchNo,
+        barcode: barcode,
+        current_step: 1
+      }]);
+
+      // 從庫存移出
+      await supabase.from('turnover_inventory').delete().eq('product_barcode', barcode);
+      
+      showAlert(t.msgAutoSuccess + ` (${newBatchNo})`);
+      fetchTurnover();
+      setExtCleanModal(false);
+      setScanInput('');
+    });
+  };
+
+  // 處理棧板拆分：記錄關聯並進 MES
+  const executePalletSplit = async (parentBarcode, childrenBarcodes) => {
     const todayDate = new Date().toISOString().split('T')[0];
-    const newBatchNo = `BATCH-${currentPallet.barcode}-${Date.now().toString().slice(-4)}`;
+    const newBatchNo = `BATCH-P-${parentBarcode}-${Date.now().toString().slice(-4)}`;
 
-    // A. 記錄到 pallet_container_map 以供未來回查 
-    const mapRecords = newChildren.map(child => ({ parent_pallet: currentPallet.barcode, child_barcode: child }));
+    // A. 記錄母子關聯
+    const mapRecords = childrenBarcodes.map(child => ({
+      parent_pallet: parentBarcode,
+      child_barcode: child,
+      action_type: 'SPLIT',
+      operator: currentUser
+    }));
     await supabase.from('pallet_container_map').insert(mapRecords);
 
-    // B. 更新庫存：刪除母棧板，新增子包材進入週轉倉 
-    await supabase.from('turnover_inventory').delete().eq('product_barcode', currentPallet.barcode);
-    await supabase.from('turnover_inventory').insert(newChildren.map(child => ({ 
-      product_barcode: child, batch_date: todayDate, added_by: currentUser 
-    })));
-
-    // C. 關鍵步驟：建立 MES 生產批次，讓主畫面顯示「待生產」 
+    // B. 更新庫存與生產批次
+    await supabase.from('turnover_inventory').delete().eq('product_barcode', parentBarcode);
+    
     await supabase.from('production_batches').insert([{
       batch_no: newBatchNo,
-      material_code: currentPallet.barcode.split('-')[0], // 依前綴判斷物料代碼 
-      status: 'pending' // 狀態設為待生產 
+      material_code: parentBarcode.split('-')[0],
+      status: 'pending'
     }]);
 
-    // D. 綁定批次內的子包材 (production_containers) 
-    await supabase.from('production_containers').insert(newChildren.map(child => ({
+    const containerRecords = childrenBarcodes.map(child => ({
       batch_no: newBatchNo,
       barcode: child,
       current_step: 1
-    })));
+    }));
+    await supabase.from('production_containers').insert(containerRecords);
 
     showAlert(t.msgSplitSuccess + ` (${newBatchNo})`);
     fetchTurnover();
-    setCurrentPallet(null); setScannedChildren([]); setExtCleanModal(false);
-  }
-};
+    setCurrentPallet(null);
+    setScannedChildren([]);
+    setExtCleanModal(false);
+  };
 
   return (
-    <>
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
-          <h2 style={{marginTop: 0, marginBottom: 0}}>{t.turnoverTitle} (Total: {turnoverItems.length})</h2>
-          
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            {/* 啟動拆棧板的按鈕 */}
-            <button className="btn" style={{ background: '#9c27b0', padding: '8px 15px', fontSize: '14px' }} onClick={() => setExtCleanModal(true)}>
-              {t.btnExtCleaning}
-            </button>
-            
-            {selectedTurnover.length > 0 && (
-              <div style={{ display: 'flex', gap: '10px', background: '#fff3e0', padding: '4px 8px', borderRadius: '8px', border: '1px solid #ff9800' }}>
-                 <button className="btn btn-secondary" style={{padding: '8px 15px', fontSize: '14px'}} onClick={handleBulkReturnToInbound}>{t.btnReturnInbound} ({selectedTurnover.length})</button>
-                 <button className="btn btn-success" style={{padding: '8px 15px', fontSize: '14px', background: '#2e7d32'}} onClick={handleBulkReturnToOutbound}>{t.btnReturnOutbound} ({selectedTurnover.length})</button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="history-table-container">
-          {turnoverItems.length === 0 ? (
-            <div style={{textAlign: 'center', color: '#999', padding: '30px', fontSize: '18px'}}>{t.turnoverEmpty}</div>
-          ) : (
-            <table className="history-table">
-              <thead>
-                <tr>
-                  <th style={{width: '40px', textAlign: 'center'}}>
-                    <input type="checkbox" className="checkbox-lg" checked={selectedTurnover.length === turnoverItems.length && turnoverItems.length > 0} onChange={toggleAllTurnover} />
-                  </th>
-                  <th>{t.colTime}</th><th>{t.colBarcode}</th><th>{t.colDate}</th><th>{t.colOp}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {turnoverItems.map(item => (
-                  <tr key={item.id} className="row-clickable" onClick={() => toggleTurnoverItem(item.id)} style={{ backgroundColor: selectedTurnover.includes(item.id) ? '#e3f2fd' : 'transparent' }}>
-                    <td style={{textAlign: 'center'}} onClick={e => e.stopPropagation()}>
-                        <input type="checkbox" className="checkbox-lg" checked={selectedTurnover.includes(item.id)} onChange={() => toggleTurnoverItem(item.id)} />
-                    </td>
-                    <td style={{color: '#666'}}>{new Date(item.added_at).toLocaleString(lang === 'zh' ? 'zh-TW' : 'en-US', {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'})}</td>
-                    <td style={{fontWeight: 'bold', fontSize: '15px', color: '#0071e3'}}>📦 {item.product_barcode}</td>
-                    <td>{item.batch_date ? `📅 ${item.batch_date}` : '-'}</td>
-                    <td>👤 {item.added_by}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+    <div className="card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ color: '#c2185b' }}>🏭 {t.turnoverTitle} (Total: {turnoverItems.length})</h2>
+        <button className="btn" style={{ background: '#9c27b0' }} onClick={() => setExtCleanModal(true)}>
+          ✨ {t.btnExtCleaning}
+        </button>
       </div>
 
-      {/* --- 拆棧板專用 Modal --- */}
+      {/* 列表渲染區 */}
+      <div className="history-table-container">
+        <table className="history-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Barcode/Batch</th>
+              <th>Date</th>
+              <th>Op</th>
+            </tr>
+          </thead>
+          <tbody>
+            {turnoverItems.map(item => (
+              <tr key={item.id}>
+                <td>{new Date(item.added_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</td>
+                <td style={{ fontWeight: 'bold', color: '#1565c2' }}>📦 {item.product_barcode}</td>
+                <td>📅 {item.batch_date}</td>
+                <td>👤 {item.added_by}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* External Cleaning / Pallet Splitting Modal */}
       {extCleanModal && (
         <div className="modal-overlay">
-          <div className="modal-card" style={{ maxWidth: '400px' }}>
-            <h3 style={{color: '#9c27b0'}}>{t.extCleanTitle}</h3>
+          <div className="modal-content" style={{ maxWidth: '450px' }}>
+            <h3 style={{ color: '#9c27b0' }}>
+              {currentPallet ? `📦 ${t.extCleanTitle}` : `✨ External Cleaning`}
+            </h3>
             
-            {!currentPallet ? (
-               <p style={{color: '#666', fontWeight: 'bold'}}>{t.extCleanScanPallet}</p>
-            ) : (
-               <div style={{ marginBottom: '15px', background: '#f3e5f5', padding: '10px', borderRadius: '8px' }}>
-                 <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#7b1fa2' }}>📍 Pallet: <strong>{currentPallet.barcode}</strong></p>
-                 <p style={{ margin: 0, fontWeight: 'bold' }}>{t.extCleanScanChild.replace('{current}', scannedChildren.length).replace('{total}', currentPallet.requiredQty)}</p>
-               </div>
-            )}
-
             <form onSubmit={handleScanSubmit}>
+              <p style={{ marginBottom: '10px' }}>
+                {currentPallet 
+                  ? t.extCleanScanChild.replace('{current}', scannedChildren.length).replace('{total}', currentPallet.requiredQty)
+                  : t.extCleanScanPallet}
+              </p>
+              
               <input 
-                type="text" 
-                style={{fontSize: '20px', padding: '15px', textAlign: 'center', borderColor: '#9c27b0', borderWidth: '2px', fontWeight: 'bold'}}
-                placeholder="Scan Barcode Here..." 
-                value={scanInput} 
-                onChange={e => setScanInput(e.target.value)} 
-                autoFocus 
+                type="text"
+                className="input-field"
+                value={scanInput}
+                onChange={(e) => setScanInput(e.target.value.toUpperCase())}
+                autoFocus
+                placeholder="Scan Barcode..."
+                style={{ fontSize: '24px', textAlign: 'center', height: '60px' }}
               />
-            </form>
 
-            {/* 顯示已掃描的子桶清單 */}
-            {scannedChildren.length > 0 && (
-              <div style={{ textAlign: 'left', marginTop: '10px', maxHeight: '150px', overflowY: 'auto' }}>
-                {scannedChildren.map((child, idx) => (
-                  <div key={idx} style={{ padding: '5px 8px', background: '#eee', borderRadius: '4px', marginBottom: '5px', fontSize: '14px' }}>
-                    ✅ {child}
-                  </div>
-                ))}
+              {currentPallet && (
+                <div style={{ marginTop: '15px', textAlign: 'left', background: '#f3e5f5', padding: '10px', borderRadius: '8px' }}>
+                  <small>Parent: <b>{currentPallet.barcode}</b></small>
+                  <ul style={{ margin: '5px 0', fontSize: '13px' }}>
+                    {scannedChildren.map((c, i) => <li key={i}>✅ {c}</li>)}
+                  </ul>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => {
+                  setExtCleanModal(false); setCurrentPallet(null); setScannedChildren([]);
+                }}>
+                  {t.btnCancel}
+                </button>
               </div>
-            )}
-
-            <div className="modal-actions" style={{ marginTop: '20px' }}>
-              <button className="btn btn-secondary" onClick={() => { setExtCleanModal(false); setCurrentPallet(null); setScannedChildren([]); }}>
-                {t.btnCancel}
-              </button>
-            </div>
+            </form>
           </div>
         </div>
       )}
-
-      {/* 原本的 Batch 輸入 Modal */}
-      {batchInputModal.isOpen && (
-        <div className="modal-overlay">
-          <div className="modal-card">
-            <h3 style={{color: '#0071e3'}}>{t.batchModalTitle}</h3>
-            <p style={{color: '#666', fontWeight: 'bold'}}>{t.batchModalDesc.replace('{n}', selectedTurnover.length)}</p>
-            <input 
-              type="text" 
-              style={{fontSize: '20px', padding: '15px', textAlign: 'center', borderColor: '#0071e3', borderWidth: '2px', fontWeight: 'bold'}}
-              placeholder={t.batchInputPlaceholder} 
-              value={batchTargetName} 
-              onChange={e => setBatchTargetName(e.target.value)} 
-            />
-            <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={() => {setBatchInputModal({isOpen: false}); setBatchTargetName('');}}>{t.btnCancel}</button>
-              <button className="btn btn-success" onClick={confirmBatchReturnToOutbound}>{t.btnConfirm}</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 }
