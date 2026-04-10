@@ -43,7 +43,8 @@ export default function MES({ t, lang, currentUser, showAlert }) {
     }
   };
 
-  const getPalletRule = (materialCode) => palletRules.find(r => materialCode && materialCode.startsWith(r.prefix));
+  // 判斷此 material_code 是否需要打棧板（比對 pallet_barcode_rules 的 material_code 欄位）
+  const getPalletRule = (materialCode) => palletRules.find(r => r.material_code && r.material_code === materialCode);
 
   const startProduction = async (batch) => {
     const { data: stepData } = await supabase.from('material_process_steps').select('*').eq('material_code', batch.material_code).order('step_order', { ascending: true });
@@ -147,8 +148,8 @@ export default function MES({ t, lang, currentUser, showAlert }) {
       if (results.some(r => r.error)) return showAlert(t.msgFail);
     }
 
-    // Packaging: multi-pallet finalization
-    if (isPackagingStep()) {
+    // Packaging: 有棧板規則 → 多棧板流程；無規則 → 一般完工
+    if (isPackagingStep() && rule) {
       if (packedDrums.length < containers.length) return showAlert(t.msgVerifyAll + ` (${packedDrums.length}/${containers.length})`);
       if (packingPallets.length === 0) return showAlert(t.msgNewPalletRequired);
 
@@ -175,6 +176,19 @@ export default function MES({ t, lang, currentUser, showAlert }) {
         .update({ current_step: currentStepIdx + 2 })
         .eq('batch_no', activeBatch.batch_no);
 
+      showAlert(t.msgAutoSuccess);
+      setActiveBatch(null);
+      fetchBatches();
+      return;
+    }
+
+    // Packaging without pallet rule (e.g. OWT Tote) → simple completion
+    if (isPackagingStep() && !rule) {
+      await supabase.from('production_batches').update({ status: 'completed' }).eq('batch_no', activeBatch.batch_no);
+      await supabase.from('turnover_inventory').update({ status: 'completed' }).eq('batch_no', activeBatch.batch_no);
+      await supabase.from('production_containers')
+        .update({ current_step: currentStepIdx + 2 })
+        .eq('batch_no', activeBatch.batch_no);
       showAlert(t.msgAutoSuccess);
       setActiveBatch(null);
       fetchBatches();
@@ -258,8 +272,8 @@ export default function MES({ t, lang, currentUser, showAlert }) {
               </div>
             )}
 
-            {/* Packaging multi-pallet UI */}
-            {isPackagingStep() ? (
+            {/* Packaging multi-pallet UI — 有棧板規則才顯示多棧板模式，否則用一般掃描 */}
+            {isPackagingStep() && rule ? (
               <div>
                 <div style={{ background: '#e3f2fd', borderRadius: '8px', padding: '12px', marginBottom: '14px', fontSize: '14px' }}>
                   <strong>{lang === 'zh' ? '進度' : 'Progress'}:</strong> {packedDrums.length} / {containers.length} {lang === 'zh' ? '桶已裝棧板' : 'drums packed'} &nbsp;|&nbsp;
@@ -305,7 +319,7 @@ export default function MES({ t, lang, currentUser, showAlert }) {
                 ))}
               </div>
             ) : (
-              /* Normal scan area */
+              /* Normal scan area (non-packaging step, OR packaging without pallet rule) */
               <div style={{ border: '2px solid #f44336', padding: '16px', borderRadius: '10px', marginBottom: '16px' }}>
                 <div style={{ marginBottom: '8px', fontSize: '14px', color: '#555' }}>
                   {t.labelScanned}: {scannedList.length} / {containers.length}
