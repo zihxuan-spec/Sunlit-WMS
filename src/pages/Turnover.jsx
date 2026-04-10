@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../config/supabaseClient';
 
-export default function Turnover({ currentUser, fetchInventory: refreshGlobal }) {
+export default function Turnover({ currentUser, refreshGlobal }) {
   const [inventory, setInventory] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]); 
   const [selectedBatch, setSelectedBatch] = useState(''); 
-  
   const [batchModal, setBatchModal] = useState(false);
   const [cleanModal, setCleanModal] = useState(false);
   const [batchNoInput, setBatchNoInput] = useState('');
@@ -31,28 +30,29 @@ export default function Turnover({ currentUser, fetchInventory: refreshGlobal })
     const items = inventory.filter(i => selectedIds.includes(i.id));
     const match = items.find(i => i.barcode === input);
 
-    if (!match) return alert("❌ 條碼不在清單中");
+    if (!match) return alert("❌ 條碼不在此次清單中");
     if (!scannedItems.includes(input)) setScannedItems([...scannedItems, input]);
     setScanInput('');
 
     if (scannedItems.length + 1 === items.length) {
       const bNo = batchNoInput.trim();
-      // 連動：建立生產任務
       await supabase.from('production_batches').insert([{ batch_no: bNo, material_code: items[0].material_code, status: 'pending', operator: currentUser }]);
       await supabase.from('production_containers').insert(items.map(i => ({ batch_no: bNo, barcode: i.barcode, current_step: 1 })));
-      // 更新週轉倉狀態
       await supabase.from('turnover_inventory').update({ status: 'pending', batch_no: bNo, updated_at: new Date().toISOString() }).in('id', selectedIds);
       
-      alert("✅ 清潔校驗完成，批次已進入待生產狀態");
+      alert("✅ 清潔校驗完成，批次已進入待生產區");
       setCleanModal(false); setSelectedIds([]); setScannedItems([]); fetchInventory();
     }
   };
 
   const moveToOutbound = async () => {
-    if (!selectedBatch) return alert("請先選擇 Batch");
-    await supabase.from('turnover_inventory').update({ location: 'Outbound', updated_at: new Date().toISOString() }).eq('batch_no', selectedBatch);
-    alert(`🚚 批次 ${selectedBatch} 已移至出貨區`);
-    setSelectedBatch(''); fetchInventory();
+    if (!selectedBatch) return alert("請選擇 Batch");
+    const { error } = await supabase.from('turnover_inventory').update({ location: 'Outbound', updated_at: new Date().toISOString() }).eq('batch_no', selectedBatch);
+    if (!error) {
+      alert(`🚚 批次 ${selectedBatch} 已移至出貨區，請至 Outbound 指派儲位`);
+      setSelectedBatch(''); fetchInventory();
+      if (refreshGlobal) refreshGlobal();
+    }
   };
 
   const rawItems = inventory.filter(i => !i.batch_no && (i.status === 'raw' || !i.status));
@@ -67,8 +67,6 @@ export default function Turnover({ currentUser, fetchInventory: refreshGlobal })
     <div className="card" style={{ padding: '20px' }}>
       <h2 style={{ color: '#9c27b0', borderBottom: '2px solid #9c27b0', paddingBottom: '10px' }}>🏭 週轉倉看板 (Turnover Area)</h2>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginTop: '20px' }}>
-        
-        {/* 1. 待清潔 */}
         <div style={{ background: '#f5f5f5', padding: '15px', borderRadius: '10px', minHeight: '500px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
             <h4 style={{ margin: 0 }}>🧹 待清潔 ({rawItems.length})</h4>
@@ -81,8 +79,6 @@ export default function Turnover({ currentUser, fetchInventory: refreshGlobal })
             </div>
           ))}
         </div>
-
-        {/* 2. 待生產 */}
         <div style={{ background: '#fff3e0', padding: '15px', borderRadius: '10px' }}>
           <h4>⚙️ 待生產 (Pending)</h4>
           {pendingItems.map(item => (
@@ -91,8 +87,6 @@ export default function Turnover({ currentUser, fetchInventory: refreshGlobal })
             </div>
           ))}
         </div>
-
-        {/* 3. 已完工 (Batch 化顯示) */}
         <div style={{ background: '#e8f5e9', padding: '15px', borderRadius: '10px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
             <h4 style={{ margin: 0, color: '#2e7d32' }}>✅ 已完工</h4>
@@ -106,7 +100,6 @@ export default function Turnover({ currentUser, fetchInventory: refreshGlobal })
           ))}
         </div>
       </div>
-
       {batchModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
           <div style={{ background: '#fff', padding: '30px', borderRadius: '10px', width: '350px' }}>
@@ -116,7 +109,6 @@ export default function Turnover({ currentUser, fetchInventory: refreshGlobal })
           </div>
         </div>
       )}
-
       {cleanModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
           <div style={{ background: '#fff', padding: '30px', borderRadius: '10px', width: '400px' }}>
