@@ -4,7 +4,7 @@ import { supabase } from '../config/supabaseClient';
 export default function Login({ onLogin, t, lang, setLang, showAlert }) {
   const [nameInput, setNameInput] = useState('');
   const [pin, setPin] = useState('');
-  const [step, setStep] = useState('name'); // name | pin
+  const [step, setStep] = useState('name');
   const [foundUser, setFoundUser] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -13,9 +13,29 @@ export default function Login({ onLogin, t, lang, setLang, showAlert }) {
     const name = nameInput.trim();
     if (!name) return;
     setLoading(true);
-    const { data } = await supabase.from('employees').select('name, role, pin').eq('name', name).single();
+
+    // 用 maybeSingle() 避免找不到時拋 error，同時相容 pin 欄位不存在的情況
+    const { data, error } = await supabase
+      .from('employees')
+      .select('name, role, pin')
+      .eq('name', name)
+      .maybeSingle();
+
     setLoading(false);
+
+    // 若 pin 欄位不存在（舊 schema），error.message 會含 column，改用不含 pin 的查詢
+    if (error && error.message?.includes('column')) {
+      const { data: data2, error: error2 } = await supabase
+        .from('employees')
+        .select('name, role')
+        .eq('name', name)
+        .maybeSingle();
+      if (!data2) return showAlert(t.msgInvalidUser);
+      return onLogin(data2.name, data2.role || 'Warehouse');
+    }
+
     if (!data) return showAlert(t.msgInvalidUser);
+
     setFoundUser(data);
     if (data.pin) {
       setStep('pin');
@@ -39,6 +59,10 @@ export default function Login({ onLogin, t, lang, setLang, showAlert }) {
 
   const handlePinBack = () => setPin(p => p.slice(0, -1));
 
+  const handleReset = () => {
+    setStep('name'); setPin(''); setFoundUser(null); setNameInput('');
+  };
+
   return (
     <div className="login-container">
       <div className="login-card">
@@ -55,7 +79,9 @@ export default function Login({ onLogin, t, lang, setLang, showAlert }) {
               autoFocus
               style={{ textAlign: 'center', fontSize: '18px', padding: '14px' }}
             />
-            <button type="submit" className="btn" style={{ width: '100%', fontSize: '17px', padding: '14px', marginTop: '4px' }} disabled={loading}>
+            <button type="submit" className="btn"
+              style={{ width: '100%', fontSize: '17px', padding: '14px', marginTop: '4px' }}
+              disabled={loading}>
               {loading ? '...' : t.loginBtn}
             </button>
           </form>
@@ -65,20 +91,22 @@ export default function Login({ onLogin, t, lang, setLang, showAlert }) {
               👤 {foundUser?.name} — {t.msgEnterPin || 'Enter PIN'}
             </p>
             <div className="pin-display">
-              {'●'.repeat(pin.length) || '○○○○'}
+              {pin.length > 0 ? '●'.repeat(pin.length) : '○ ○ ○ ○'}
             </div>
             <div className="pin-grid" style={{ marginBottom: '12px' }}>
               {[1,2,3,4,5,6,7,8,9].map(d => (
                 <button key={d} className="pin-btn" onClick={() => handlePinPress(String(d))}>{d}</button>
               ))}
-              <button className="pin-btn" onClick={handlePinBack} style={{ fontSize: '18px' }}>⌫</button>
+              <button className="pin-btn" onClick={handlePinBack} style={{ fontSize: '20px' }}>⌫</button>
               <button className="pin-btn" onClick={() => handlePinPress('0')}>0</button>
-              <button className="pin-btn" onClick={() => { setStep('name'); setPin(''); setFoundUser(null); setNameInput(''); }} style={{ fontSize: '13px', color: 'var(--text-muted)' }}>✕</button>
+              <button className="pin-btn" onClick={handleReset}
+                style={{ fontSize: '12px', color: 'var(--text-muted)' }}>✕ {lang === 'zh' ? '返回' : 'Back'}</button>
             </div>
           </div>
         )}
 
-        <button className="btn btn-secondary" style={{ marginTop: '16px', width: '100%', fontSize: '14px' }}
+        <button className="btn btn-secondary"
+          style={{ marginTop: '16px', width: '100%', fontSize: '14px' }}
           onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}>
           🌐 {t.switchLang}
         </button>
