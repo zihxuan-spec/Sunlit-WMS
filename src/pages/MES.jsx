@@ -9,11 +9,19 @@ export default function MES({ t, lang, showAlert, currentUser }) {
   const [containers, setContainers] = useState([]);
   const [scannedList, setScannedList] = useState([]); 
   const [scanInput, setScanInput] = useState('');
-  const [formData, setFormData] = useState({ cleaningLine: 'Line A', workOrder: '', gunNumber: '', newPallet: '' });
+  
+  // 對接您資料庫截圖中的欄位
+  const [formData, setFormData] = useState({ 
+    cleaningLine: 'Line A', 
+    workOrder: '', 
+    gunNumber: '', 
+    newPallet: '' 
+  });
 
   useEffect(() => { fetchBatches(); }, []);
 
   const fetchBatches = async () => {
+    // 修正後的查詢語法
     const { data } = await supabase.from('production_batches').select('*').order('created_at', { ascending: false });
     if (data) {
       setBatches({
@@ -24,20 +32,23 @@ export default function MES({ t, lang, showAlert, currentUser }) {
     }
   };
 
-  // 進入生產精靈：嚴格讀取資料庫設定
   const startProduction = async (batch) => {
-    // 1. 抓取資料庫中的製程步驟
-    const { data: stepData } = await supabase.from('material_process_steps')
+    // 🔍 修正處 1：補上 .select()，解決 Console 中的 eq is not a function 錯誤
+    const { data: stepData } = await supabase
+      .from('material_process_steps')
+      .select('*') // 👈 重要：必須先 select 才能 eq
       .eq('material_code', batch.material_code)
       .order('step_order', { ascending: true });
     
-    // 如果資料庫沒設定，則提示錯誤並中斷，不再自動載入
     if (!stepData || stepData.length === 0) {
-      return alert(`❌ 錯誤：資料庫中找不到物料 [${batch.material_code}] 的步驟設定！`);
+      return alert(`❌ 錯誤：資料庫中找不到 [${batch.material_code}] 的步驟設定！`);
     }
 
-    // 2. 抓取此批次的容器清單
-    const { data: contData } = await supabase.from('production_containers').eq('batch_no', batch.batch_no);
+    // 🔍 修正處 2：同樣補上 .select()
+    const { data: contData } = await supabase
+      .from('production_containers')
+      .select('*') // 👈 重要
+      .eq('batch_no', batch.batch_no);
     
     setSteps(stepData);
     setContainers(contData || []);
@@ -45,7 +56,6 @@ export default function MES({ t, lang, showAlert, currentUser }) {
     setCurrentStepIdx(0);
     setScannedList([]);
 
-    // 3. 更新狀態為 processing
     if (batch.status === 'pending') {
       await supabase.from('production_batches').update({ status: 'processing' }).eq('batch_no', batch.batch_no);
       fetchBatches();
@@ -54,11 +64,13 @@ export default function MES({ t, lang, showAlert, currentUser }) {
 
   const handleVerify = (e) => {
     e.preventDefault();
-    const barcode = scanInput.trim().toUpperCase();
-    const match = containers.find(c => (c.barcode === barcode || c.product_barcode === barcode));
+    const input = scanInput.trim().toUpperCase();
+    // 使用您資料庫截圖中的 barcode 欄位名
+    const match = containers.find(c => c.barcode === input);
+    
     if (!match) return alert("❌ 此桶號不在批次清單中！");
-    if (scannedList.includes(barcode)) return setScanInput('');
-    setScannedList([...scannedList, barcode]);
+    if (scannedList.includes(input)) return setScanInput('');
+    setScannedList([...scannedList, input]);
     setScanInput('');
   };
 
@@ -69,14 +81,17 @@ export default function MES({ t, lang, showAlert, currentUser }) {
     // Packaging 站點邏輯
     if (currentStep.step_name.includes('Packaging')) {
       if (!formData.newPallet) return alert("⚠️ 請輸入成品棧板號碼！");
+      
       await supabase.from('pallet_container_map').insert(containers.map(c => ({
         parent_pallet: formData.newPallet,
-        child_barcode: c.barcode || c.product_barcode,
+        child_barcode: c.barcode,
         action_type: 'PACK',
         operator: currentUser
       })));
+
       await supabase.from('production_batches').update({ status: 'completed' }).eq('batch_no', activeBatch.batch_no);
       await supabase.from('turnover_inventory').update({ status: 'completed' }).eq('batch_no', activeBatch.batch_no);
+      
       alert("✅ 生產完成！");
       setActiveBatch(null);
       fetchBatches();
@@ -106,35 +121,22 @@ export default function MES({ t, lang, showAlert, currentUser }) {
         ))}
       </div>
 
-      {/* 生產精靈 Modal：含強制背景遮罩 */}
       {activeBatch && (
-        <div style={{ 
-          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
-          background: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000 
-        }}>
-          <div style={{ background: '#fff', width: '90%', maxWidth: '600px', borderRadius: '12px', padding: '30px', position: 'relative' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000 }}>
+          <div style={{ background: '#fff', width: '90%', maxWidth: '600px', borderRadius: '12px', padding: '30px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
               <h3 style={{ margin: 0, color: '#1976d2' }}>{steps[currentStepIdx]?.step_name}</h3>
               <button onClick={() => setActiveBatch(null)} style={{ background: '#eee', border: 'none', padding: '5px 15px', borderRadius: '4px', cursor: 'pointer' }}>Close</button>
             </div>
 
-            {/* Stepper 進度顯示 */}
             <div style={{ display: 'flex', gap: '5px', marginBottom: '25px' }}>
               {steps.map((s, i) => (
-                <div key={i} style={{ 
-                  flex: 1, height: '35px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '20px', fontSize: '11px',
-                  background: i === currentStepIdx ? '#e3f2fd' : (i < currentStepIdx ? '#e8f5e9' : '#f5f5f5'),
-                  color: i === currentStepIdx ? '#1976d2' : (i < currentStepIdx ? '#2e7d32' : '#999'),
-                  border: i === currentStepIdx ? '2px solid #1976d2' : '1px solid #ddd'
-                }}>
-                  Step {i+1}
-                </div>
+                <div key={i} style={{ flex: 1, height: '35px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '20px', fontSize: '11px', background: i === currentStepIdx ? '#e3f2fd' : (i < currentStepIdx ? '#e8f5e9' : '#f5f5f5'), color: i === currentStepIdx ? '#1976d2' : (i < currentStepIdx ? '#2e7d32' : '#999'), border: i === currentStepIdx ? '2px solid #1976d2' : '1px solid #ddd' }}>Step {i+1}</div>
               ))}
             </div>
 
-            {/* 紅色校驗區域 */}
             <div style={{ border: '2px solid #f44336', borderRadius: '10px', padding: '20px', marginBottom: '20px' }}>
-              <h4 style={{ color: '#f44336', marginTop: 0 }}>Scan Containers to Verify ({scannedList.length}/{containers.length})</h4>
+              <h4 style={{ color: '#f44336', marginTop: 0 }}>Scan Containers ({scannedList.length}/{containers.length})</h4>
               <form onSubmit={handleVerify} style={{ display: 'flex', gap: '10px' }}>
                 <input type="text" className="input-field" value={scanInput} onChange={e => setScanInput(e.target.value.toUpperCase())} placeholder="掃描桶號..." autoFocus />
                 <button type="submit" className="btn" style={{ background: '#f44336', width: '80px' }}>Verify</button>
@@ -142,10 +144,8 @@ export default function MES({ t, lang, showAlert, currentUser }) {
               <div style={{ marginTop: '15px', maxHeight: '120px', overflowY: 'auto' }}>
                 {containers.map(c => (
                   <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #eee', fontSize: '14px' }}>
-                    <span>📦 {c.barcode || c.product_barcode}</span>
-                    <span style={{ color: scannedList.includes(c.barcode || c.product_barcode) ? '#4caf50' : '#999' }}>
-                      {scannedList.includes(c.barcode || c.product_barcode) ? 'Verified ✓' : 'Waiting...'}
-                    </span>
+                    <span>📦 {c.barcode}</span>
+                    <span style={{ color: scannedList.includes(c.barcode) ? '#4caf50' : '#999' }}>{scannedList.includes(c.barcode) ? 'Verified ✓' : 'Waiting...'}</span>
                   </div>
                 ))}
               </div>
@@ -158,9 +158,7 @@ export default function MES({ t, lang, showAlert, currentUser }) {
               </div>
             )}
 
-            <button className="btn" style={{ width: '100%', background: '#9c27b0', padding: '18px', fontSize: '18px', fontWeight: 'bold' }} onClick={handleSaveAndNext}>
-               💾 Save & Next
-            </button>
+            <button className="btn" style={{ width: '100%', background: '#9c27b0', padding: '18px', fontSize: '18px', fontWeight: 'bold' }} onClick={handleSaveAndNext}>💾 Save & Next</button>
           </div>
         </div>
       )}
