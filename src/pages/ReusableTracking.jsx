@@ -69,7 +69,7 @@ export default function ReusableTracking({ t, lang, showAlert }) {
         <div>
           <div className="page-title">{t.reusableTitle}</div>
           <div className="page-subtitle">
-            {lang === 'zh' ? '循環包材生命週期追蹤' : 'Reusable container lifecycle tracking'}
+            {lang === 'zh' ? '循環包材生命週期追蹤 · 入庫時自動偵測回廠' : 'Lifecycle tracking · Auto-detected on inbound scan'}
           </div>
         </div>
         <button className="btn btn-ghost btn-sm" onClick={fetchData}>{lang === 'zh' ? '重新整理' : 'Refresh'}</button>
@@ -160,7 +160,7 @@ export default function ReusableTracking({ t, lang, showAlert }) {
                             style={{ fontSize:11, padding:'4px 10px', minHeight:'unset' }}
                             disabled={isSubmitting}
                             onClick={() => handleConfirmReturn(item.barcode)}>
-                            {lang==='zh'?'確認回廠':'Confirm return'}
+                            {lang==='zh'?'手動回廠':'Manual return'}
                           </button>
                         )}
                       </td>
