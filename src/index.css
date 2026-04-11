@@ -513,7 +513,7 @@ input::placeholder, textarea::placeholder { color: var(--dk-text-4); }
 .shelf h2 { margin: 0 0 2px; font-size: var(--dyn-font-h2, 11px); color: inherit; font-weight: 600; word-break: break-all; }
 .shelf p  { margin: 0; font-size: var(--dyn-font-p, 10px); font-weight: 600; word-break: break-word; }
 .shelf .date-tag { font-size: 9px; background: rgba(255,255,255,.1); padding: 1px 4px; border-radius: 2px; margin-top: 2px; }
-.shelf-empty { background: #1a2236; color: #2d3748; }
+.shelf-empty { background: #1a2236; color: #4a5568; }
 .shelf-occupied { background: #14391f; color: #4ade80; border-color: #16a34a44; }
 
 /* Shelf animations */
@@ -847,7 +847,7 @@ input::placeholder, textarea::placeholder { color: var(--dk-text-4); }
     max-height: 52vh;
     padding: 10px;
   }
-  .shelf-empty    { background: #e9edf5; color: #c1c8d8; }
+  .shelf-empty    { background: #e9edf5; color: #6b7a99; }
   .shelf-occupied { background: #dcfce7; color: #15803d; border: 1px solid #86efac44; }
 
   /* Pending items */
@@ -1014,7 +1014,7 @@ html.light .wh-tab.active { background: var(--lt-accent); border-color: var(--lt
 html.light .zone-tab        { background: var(--lt-border); color: var(--lt-text-2); border-color: var(--lt-border2); }
 html.light .zone-tab.active { background: var(--lt-text); color: var(--lt-surface); border-color: var(--lt-text); }
 html.light .warehouse-floor { background: #e9edf5; border-color: var(--lt-border); }
-html.light .shelf-empty     { background: #dde3ef; color: #b0bac8; }
+html.light .shelf-empty     { background: #dde3ef; color: #5a6a88; }
 html.light .shelf-occupied  { background: #dcfce7; color: #15803d; border: 1px solid #86efac44; }
 
 html.light .history-table th { background: var(--lt-bg); color: var(--lt-text-2); }
