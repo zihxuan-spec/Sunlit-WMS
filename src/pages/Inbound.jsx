@@ -16,6 +16,9 @@ export default function Inbound({
   const [batchInput, setBatchInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Force North Warehouse
+  useEffect(() => { setActiveWarehouse('North Warehouse'); }, []);
+
   useEffect(() => {
     if (shelves.length > 0) {
       const northZones = [...new Set(shelves.filter(s => s.warehouse === 'North Warehouse').map(s => s.zone))].sort();
