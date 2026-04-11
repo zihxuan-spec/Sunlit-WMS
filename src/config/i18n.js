@@ -22,7 +22,7 @@ export const dict = {
  msgAutoConfirm: "Assign {n} items to Zone {z}? Continue?",
  msgAutoSuccess: " Operation completed!", msgNoSpace: " No empty space in this zone!",
  msgFail: "Operation failed!", msgSelectFirst: " Select an item first!",
- historyTitle: " Audit Log:", colTime: "Time", colAction: "Action", colBarcode: "Barcode/Batch", colOp: "Op",
+ historyTitle: " History:", colTime: "Time", colAction: "Action", colBarcode: "Barcode/Batch", colOp: "Op",
  actIn: " In", actOut: " Out", actOutCust: " Ship (Cust)", actOutTurn: " Transfer (Turnover)", noHistory: "No records found.",
  msgInvalidUser: " Login Failed! Name not found.",
  msgDupFilter: " Filtered {n} duplicates!\n{list}",
