@@ -33,7 +33,7 @@ export default function Turnover({
   const fetchContainerTypes = async () => {
     const { data } = await supabase
       .from('container_types')
-      .select('*, customers(name)')
+      .select('*')
       .eq('active', true);
     if (data) setContainerTypes(data);
   };
@@ -229,7 +229,7 @@ export default function Turnover({
           color: detectedTypes.length === 1 ? '#4ade80' : '#fbbf24',
           border:`1px solid ${detectedTypes.length === 1 ? 'rgba(16,185,129,.3)' : 'rgba(245,158,11,.3)'}` }}>
           {detectedTypes.length === 1
-            ? `${lang==='zh'?'包材':'Type'}: ${detectedTypes[0].code}${detectedTypes[0].customers?.name ? ` · ${detectedTypes[0].customers.name}` : ''} · ${selectedIds.length} ${lang==='zh'?'已選':'selected'}`
+            ? `${lang==='zh'?'包材':'Type'}: ${detectedTypes[0].code} · ${selectedIds.length} ${lang==='zh'?'已選':'selected'}`
             : detectedTypes.length === 0
               ? lang==='zh' ? '無法判斷包材類型，請確認 container_types 設定' : 'Cannot detect type — check container_types config'
               : `${lang==='zh'?'混合類型':'Mixed'}: ${detectedTypes.map(c=>c.code).join(', ')} — ${lang==='zh'?'請分開處理':'process separately'}`
@@ -267,7 +267,7 @@ export default function Turnover({
                         <span className="badge badge-gray" style={{ fontSize:9 }}>{ct.code}</span>
                         {ct.is_pallet && <span className="badge badge-amber" style={{ fontSize:9 }}>PALLET</span>}
                         {ct.is_reusable && <span className="badge badge-green" style={{ fontSize:9 }}>REUSABLE</span>}
-                        {ct.customers?.name && <span className="badge badge-blue" style={{ fontSize:9 }}>{ct.customers.name}</span>}
+
                       </>
                     ) : (
                       <span style={{ fontSize:10, color:'var(--dk-danger)' }}>Unknown type</span>
