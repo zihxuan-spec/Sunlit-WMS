@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-export default function Dashboard({ t, lang, shelves, turnoverItems, inProductionCount, showAlert }) {
+export default function Dashboard({ t, lang, shelves, turnoverItems, inProductionCount, showAlert, onRefresh }) {
+  const [refreshing, setRefreshing] = useState(false);
+
   const northShelves = shelves.filter(s => s.warehouse === 'North Warehouse');
   const northTotal   = northShelves.length;
   const northUsed    = northShelves.filter(s => s.status === 'occupied').length;
@@ -15,6 +17,13 @@ export default function Dashboard({ t, lang, shelves, turnoverItems, inProductio
   const turnoverPending = turnoverItems.filter(i => i.status === 'pending').length;
 
   const barColor = (r) => r > 85 ? '#ef4444' : r > 65 ? '#f59e0b' : '#10b981';
+
+  const handleRefresh = async () => {
+    if (refreshing || !onRefresh) return;
+    setRefreshing(true);
+    await onRefresh();
+    setTimeout(() => setRefreshing(false), 600);
+  };
 
   const handleExportCSV = () => {
     const headers = ['Area', 'Zone', 'Shelf ID', 'Status', 'Batch No.', 'Barcode', 'Batch Date', 'Operator'];
@@ -62,9 +71,18 @@ export default function Dashboard({ t, lang, shelves, turnoverItems, inProductio
       <div className="page-header">
         <div>
           <div className="page-title">{lang === 'zh' ? '總覽' : 'Dashboard'}</div>
-          <div className="page-subtitle">{lang === 'zh' ? '即時庫存狀態' : 'Live inventory status'}</div>
+          <div className="page-subtitle" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {lang === 'zh' ? '即時庫存狀態' : 'Live inventory status'}
+            {refreshing && <span style={{ fontSize: 11, color: 'var(--dk-accent)' }}>• {lang === 'zh' ? '更新中...' : 'Refreshing...'}</span>}
+          </div>
         </div>
-        <button className="btn btn-success btn-sm" onClick={handleExportCSV}>{t.exportBtn}</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-ghost btn-sm" onClick={handleRefresh} disabled={refreshing}
+            title={lang === 'zh' ? '重新整理' : 'Refresh'}>
+            {refreshing ? '...' : lang === 'zh' ? '重新整理' : 'Refresh'}
+          </button>
+          <button className="btn btn-success btn-sm" onClick={handleExportCSV}>{t.exportBtn}</button>
+        </div>
       </div>
 
       <div className="card" style={{ marginBottom: 14 }}>
