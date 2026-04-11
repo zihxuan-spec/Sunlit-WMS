@@ -128,6 +128,22 @@ export default function App() {
     const rows = barcodes.map(bc => ({ barcode: bc, added_by: currentUser }));
     const { data } = await supabase.from('inbound_queue').insert(rows).select();
     if (data) setPendingItemsState(prev => [...prev, ...data.map(r => ({ id: r.id, barcode: r.barcode }))]);
+    await autoMarkReusableReturn(barcodes);  // auto-detect reusable return
+  };
+
+  // Auto-detect reusable return: called whenever barcodes enter inbound
+  const autoMarkReusableReturn = async (barcodes) => {
+    if (!barcodes.length) return;
+    const { data } = await supabase
+      .from('reusable_tracking')
+      .select('barcode')
+      .in('barcode', barcodes)
+      .eq('current_status', 'ready_to_ship');
+    if (!data?.length) return;
+    await supabase
+      .from('reusable_tracking')
+      .update({ current_status: 'in_plant' })
+      .in('barcode', data.map(r => r.barcode));
   };
 
   const removeFromPendingDB = async (barcodes) => {
@@ -223,7 +239,7 @@ export default function App() {
         ...outAssignRef.current.map(i => i.barcode),
       ];
       if (existingBarcodes.includes(bc)) return showAlert(t.msgDupSingle.replace('{bc}', bc));
-      addToPendingDB([bc]);
+      addToPendingDB([bc]);  // autoMarkReusableReturn is called inside addToPendingDB
       setSelectedPending(bc);
       if (viewRef.current !== 'inbound') { setCurrentView('inbound'); setActiveWarehouse('North Warehouse'); }
     }
