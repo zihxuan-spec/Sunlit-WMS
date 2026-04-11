@@ -314,7 +314,7 @@ export default function MES({ t, lang, currentUser, showAlert }) {
                 <h3 style={{ fontSize:18, marginBottom:4, color:textPrim, fontWeight:600 }}>{curStep()?.step_name}</h3>
                 <div style={{ fontSize:12, color:textMut }}>
                   Step {currentStepIdx+1}/{steps.length} · <span style={{ fontFamily:'monospace', color:'var(--dk-accent)' }}>{activeBatch.batch_no}</span> · {activeBatch.material_code}
-                  {containers.length > 0 && <span> · {containers.length} {lang==='zh'?'桶':'drums'}</span>}
+                  {containers.length > 0 && <span> · {containers.length} {ct?.name || (lang==='zh'?'桶':'drums')}</span>}
                   {ct && <span className="badge badge-gray" style={{ marginLeft:6, fontSize:9 }}>{ct.is_pallet ? 'PALLET' : 'DRUM'}{ct.is_reusable ? ' · REUSABLE' : ''}</span>}
                 </div>
               </div>
@@ -385,7 +385,7 @@ export default function MES({ t, lang, currentUser, showAlert }) {
             {usePackingUI && (
               <div>
                 <div style={{ padding:'10px 14px', background:'rgba(59,130,246,.12)', borderRadius:8, marginBottom:14, fontSize:13, color:textPrim, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                  <span>{lang==='zh'?'進度':'Progress'}: <strong>{packedDrums.length}{containers.length > 0 ? `/${containers.length}`:''}</strong> {lang==='zh'?'桶':'drums'}{maxPerP ? ` · Max ${maxPerP}/pallet`:''}</span>
+                  <span>{lang==='zh'?'進度':'Progress'}: <strong>{packedDrums.length}{containers.length > 0 ? `/${containers.length}`:''}</strong> {ct?.name || (lang==='zh'?'桶':'drums')}{maxPerP ? ` · Max ${maxPerP}/pallet`:''}</span>
                   <span style={{ fontSize:11, color:textMut }}>{lang==='zh'?'掃描桶號加入棧板':'Scan drums into pallets'}</span>
                 </div>
                 <div style={{ display:'flex', gap:8, marginBottom:12, alignItems:'flex-end' }}>
