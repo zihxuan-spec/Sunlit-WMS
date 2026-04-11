@@ -36,7 +36,7 @@
   --lt-border2:   #d1d5db;
   --lt-text:      #111827;
   --lt-text-2:    #6b7280;
-  --lt-text-3:    #9ca3af;
+  --lt-text-3:    #6b7280;
   --lt-accent:    #007aff;
   --lt-success:   #34c759;
   --lt-warn:      #ff9500;
@@ -895,6 +895,25 @@ input::placeholder, textarea::placeholder { color: var(--dk-text-4); }
 
 /* ── Misc shared ──────────────────────────────────────────── */
 .checkbox-lg { width: 20px; height: 20px; cursor: pointer; }
+
+
+/* ── Global readability fixes for light mode ── */
+html.light {
+  --dk-text:    #111827;
+  --dk-text-2:  #374151;
+  --dk-text-3:  #6b7280;
+  --dk-text-4:  #9ca3af;
+  --dk-surface: #ffffff;
+  --dk-surface2:#f9fafb;
+  --dk-border:  #e5e7eb;
+  --dk-accent:  #2563eb;
+  --dk-accent-bg: #eff6ff;
+  --dk-warn:    #d97706;
+  --dk-warn-bg: #fffbeb;
+  --dk-danger:  #dc2626;
+  --dk-success: #16a34a;
+  --dk-success-bg: #f0fdf4;
+}
 
 /* ════════════════════════════════════════════════════════════
    LIGHT MODE OVERRIDE (桌面淺色版)
