@@ -84,6 +84,7 @@ export default function ReusableTracking({ t, lang, showAlert }) {
                   <th>{t.colUses}</th>
                   <th>{t.colMaxUses}</th>
                   <th>{lang === 'zh' ? '最後出貨' : 'Last shipped'}</th>
+                  <th>{lang === 'zh' ? '最後客戶' : 'Last customer'}</th>
                   <th>{lang === 'zh' ? '操作' : 'Action'}</th>
                 </tr>
               </thead>
@@ -108,6 +109,7 @@ export default function ReusableTracking({ t, lang, showAlert }) {
                       <td style={{ fontSize: 11, color: 'var(--dk-text-3)' }}>
                         {item.last_shipped_at ? new Date(item.last_shipped_at).toLocaleString(lang === 'zh' ? 'zh-TW' : 'en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                       </td>
+                      <td style={{ fontSize: 12, fontWeight: item.last_customer ? 600 : 400, color: item.last_customer ? 'var(--dk-text)' : 'var(--dk-text-4)' }}>{item.last_customer || '—'}</td>
                       <td>
                         {item.current_status === 'ready_to_ship' && (
                           <button className="btn btn-success btn-sm" style={{ fontSize: 10, padding: '4px 10px', minHeight: 'unset' }}
