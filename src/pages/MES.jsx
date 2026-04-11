@@ -23,6 +23,7 @@ export default function MES({ t, lang, currentUser, showAlert }) {
   const [completeInfo, setCompleteInfo] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [batchesLoading, setBatchesLoading] = useState(true);
+  const [loadingBatch, setLoadingBatch] = useState(null); // batch_no being opened
   const scanRef = useRef(null);
 
   useEffect(() => {
@@ -98,6 +99,7 @@ export default function MES({ t, lang, currentUser, showAlert }) {
 
   // ── Start production ──────────────────────────────────────
   const startProduction = async (batch) => {
+    setLoadingBatch(batch.batch_no);
     // Resolve container type immediately and store in state
     const foundCT = findCT(batch.material_code);
     setActiveBatchCT(foundCT);
@@ -128,7 +130,7 @@ export default function MES({ t, lang, currentUser, showAlert }) {
         }));
       }
     }
-    if (!stepData?.length) return showAlert(t.msgNoProcessSteps);
+    if (!stepData?.length) { setLoadingBatch(null); return showAlert(t.msgNoProcessSteps); }
 
     const { data: contData } = await supabase.from('production_containers').select('*').eq('batch_no', batch.batch_no);
     setSteps(stepData); setContainers(contData || []); setActiveBatch(batch);
@@ -154,6 +156,7 @@ export default function MES({ t, lang, currentUser, showAlert }) {
     setPackingPallets([]); setCurrentPackPallet(''); setPackedDrums([]); setActiveFillDrum(null);
     setFormData(f => ({ ...f, newPallet: '' }));
 
+    setLoadingBatch(null);
     if (batch.status === 'pending') {
       await supabase.from('production_batches').update({ status: 'processing' }).eq('batch_no', batch.batch_no);
       fetchBatches();
