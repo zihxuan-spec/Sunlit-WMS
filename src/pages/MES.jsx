@@ -197,7 +197,7 @@ export default function MES({ t, lang, currentUser, showAlert }) {
       setIsSubmitting(false); setShowComplete(true); setActiveBatch(null); fetchBatches(); return;
     }
 
-    if (!isPackagingStep() && containers.filter(c => !scannedList.includes(c.barcode)).length > 0)
+    if (!usePackingUI && containers.length > 0 && containers.filter(c => !scannedList.includes(c.barcode)).length > 0)
       return showAlert(t.msgVerifyAll + ` (${scannedList.length}/${containers.length})`);
 
     if (isFillingStep()) {
@@ -445,9 +445,9 @@ export default function MES({ t, lang, currentUser, showAlert }) {
             )}
 
             <button className="btn btn-primary"
-              style={{ width:'100%', padding:14, fontSize:15, background: usePackingUI ? '#059669':'#8b5cf6', opacity: isSubmitting ? .7:1 }}
+              style={{ width:'100%', padding:14, fontSize:15, background: (usePackingUI || isPackagingStep()) ? '#059669':'#8b5cf6', opacity: isSubmitting ? .7:1 }}
               disabled={isSubmitting} onClick={handleSaveAndNext}>
-              {isSubmitting ? (lang==='zh'?'儲存中...':'Saving...') : usePackingUI ? t.btnComplete : t.btnSaveNext}
+              {isSubmitting ? (lang==='zh'?'儲存中...':'Saving...') : (usePackingUI || isPackagingStep()) ? t.btnComplete : t.btnSaveNext}
             </button>
           </div>
         </div>
