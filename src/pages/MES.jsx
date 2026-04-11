@@ -281,10 +281,19 @@ export default function MES({ t, lang, currentUser, showAlert }) {
                   onClick={() => status !== 'completed' && !isSubmitting && startProduction(b)}>
                   <div className="kanban-batch">{b.batch_no}</div>
                   <div className="kanban-meta">
-                    <span>{b.material_code}</span>
-                    {batchCounts[b.batch_no] > 0 && <span style={{ marginLeft:6 }}>· {batchCounts[b.batch_no]} {lang==='zh'?'桶':'drums'}</span>}
-                    {b.customers?.name && <span style={{ marginLeft:6 }}>· {b.customers.name}</span>}
-                    {status === 'processing' && <span style={{ marginLeft:6, color:colCfg.processing.accent }}>· {lang==='zh'?'生產中':'In progress'}</span>}
+                    {(() => {
+                      const ct = containerTypes.find(x => x.code === b.material_code);
+                      const label = ct ? ct.name : b.material_code;
+                      const count = batchCounts[b.batch_no];
+                      return (
+                        <>
+                          {count > 0 && <span>{count} {label}</span>}
+                          {!count && <span>{label}</span>}
+                          {b.customers?.name && <span style={{ marginLeft:6 }}>· {b.customers.name}</span>}
+                          {status === 'processing' && <span style={{ marginLeft:6, color:colCfg.processing.accent }}>· {lang==='zh'?'生產中':'In progress'}</span>}
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               ))}
