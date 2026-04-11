@@ -68,7 +68,7 @@ export default function Navbar({ currentUser, userRole, handleLogout, lang, setL
           {/* Company logo: place your logo file at /public/logo.png and set COMPANY_LOGO=true */}
           {window.__COMPANY_LOGO__
             ? <img src="/logo.png" alt="Logo" style={{ height: 28, objectFit: 'contain', marginRight: 2 }} />
-            : <div className="topbar-logo-mark">W</div>
+            : <div className="topbar-logo-mark">S</div>
           }
           <span className="topbar-logo-name">Sunlit WMS</span>
         </div>
@@ -117,7 +117,7 @@ export default function Navbar({ currentUser, userRole, handleLogout, lang, setL
         <div className="mobile-logo">
           {window.__COMPANY_LOGO__
             ? <img src="/logo.png" alt="Logo" style={{ height: 22, objectFit: 'contain' }} />
-            : <div className="mobile-logo-mark">W</div>
+            : <div className="mobile-logo-mark">S</div>
           }
           <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--lt-text)' }}>Sunlit WMS</span>
         </div>
