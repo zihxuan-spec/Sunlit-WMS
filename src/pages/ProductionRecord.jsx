@@ -149,7 +149,7 @@ export default function ProductionRecord({ t, lang }) {
                   <tr key={r.batch_no} className="row-clickable">
                     <td><span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: 'var(--dk-accent)' }}>{r.batch_no}</span></td>
                     <td><span className="badge badge-gray" style={{ fontSize: 10 }}>{r.material_code || '—'}</span></td>
-                    <td style={{ fontSize: 13, fontWeight: 600 }}>{r.production_containers?.[0]?.count ?? '—'}</td>
+                    <td style={{ fontSize: 13, fontWeight: 600 }}>{r.production_containers?.[0]?.count != null ? parseInt(r.production_containers[0].count) || 0 : '—'}</td>
                     <td>
                       {r.customer
                         ? <span style={{ fontSize: 12, fontWeight: 600 }}>{r.customer}</span>
