@@ -17,6 +17,9 @@ export default function Outbound({
   const [showShipModal, setShowShipModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Force South Warehouse
+  useEffect(() => { setActiveWarehouse('South Warehouse'); }, []);
+
   useEffect(() => {
     const southZones = [...new Set(shelves.filter(s => s.warehouse === 'South Warehouse').map(s => s.zone))].sort();
     if (southZones.length > 0 && !southZones.includes(autoAssignZoneOutbound)) setAutoAssignZoneOutbound(southZones[0]);
