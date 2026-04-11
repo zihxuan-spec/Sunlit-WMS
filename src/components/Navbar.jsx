@@ -43,6 +43,15 @@ const NAV_GROUPS = [
       { key: 'zebra', label: { en: 'Zebra Scanner', zh: 'Zebra' } },
     ],
   },
+  {
+    key: 'admin',
+    label: 'Admin',
+    color: '#e11d48',
+    roles: ['Admin'],
+    items: [
+      { key: 'admin', label: { en: 'Settings', zh: '系統設定' } },
+    ],
+  },
 ];
 
 const DOT_COLORS = {
@@ -50,6 +59,7 @@ const DOT_COLORS = {
   inbound:'#f59e0b', turnover:'#f59e0b', outbound:'#f59e0b', map:'#f59e0b',
   mes:'#8b5cf6', reusable:'#8b5cf6',
   zebra:'#14b8a6',
+  admin:'#e11d48',
 };
 
 export default function Navbar({ currentUser, userRole, handleLogout, lang, setLang, currentView, setCurrentView, t, theme, toggleTheme }) {
