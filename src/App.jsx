@@ -25,8 +25,8 @@ export default function App() {
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
 
   const t = dict[lang];
-  const [currentUser, setCurrentUser] = useState(null);
-  const [userRole, setUserRole] = useState('Warehouse');
+  const [currentUser, setCurrentUser] = useState(() => sessionStorage.getItem('wms_user') || null);
+  const [userRole, setUserRole] = useState(() => sessionStorage.getItem('wms_role') || 'Warehouse');
   const [currentView, setCurrentView] = useState('dashboard');
 
   const [modal, setModal] = useState({ isOpen: false, type: 'alert', title: '', msg: '', onConfirm: null, onAltConfirm: null, btnConfirm: '', btnAlt: '', btnCancel: '' });
@@ -452,6 +452,8 @@ export default function App() {
 
   const handleLogout = async () => {
     setCurrentUser(null);
+    sessionStorage.removeItem('wms_user');
+    sessionStorage.removeItem('wms_role');
     setPendingItemsState([]); setOutboundAssignItemsState([]);
   };
 
@@ -461,7 +463,11 @@ export default function App() {
 
   if (!currentUser) return (
     <>
-      <Login onLogin={(name, role) => { setCurrentUser(name); setUserRole(role); }} t={t} lang={lang} setLang={setLang} showAlert={showAlert} />
+      <Login onLogin={(name, role) => {
+          setCurrentUser(name); setUserRole(role);
+          sessionStorage.setItem('wms_user', name);
+          sessionStorage.setItem('wms_role', role);
+        }} t={t} lang={lang} setLang={setLang} showAlert={showAlert} />
       <GlobalModal modal={modal} closeModal={closeModal} t={t} />
     </>
   );
