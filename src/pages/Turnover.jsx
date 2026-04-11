@@ -293,8 +293,8 @@ export default function Turnover({
               <div key={b.bNo} style={{ padding:'9px 12px', marginBottom:4, borderRadius:6, borderLeft:'3px solid #8b5cf6', background: surface2 }}>
                 <div style={{ fontFamily:'monospace', fontSize:12, fontWeight:700, color: textPrim }}>{b.bNo}</div>
                 <div style={{ display:'flex', gap:5, marginTop:3 }}>
-                  {b.code && <span className="badge badge-purple" style={{ fontSize:9 }}>{b.code}</span>}
-                  <span style={{ fontSize:10, color: textMut }}>{b.items.length} {lang==='zh'?'桶':'drums'}</span>
+                  {(() => { const ct = containerTypes.find(x => x.code === b.code); return ct ? <span className="badge badge-purple" style={{ fontSize:9 }}>{ct.name}</span> : b.code ? <span className="badge badge-purple" style={{ fontSize:9 }}>{b.code}</span> : null; })()}
+                  <span style={{ fontSize:10, color: textMut }}>{b.items.length} {lang==='zh'?'個':'pcs'}</span>
                 </div>
               </div>
             ))}
@@ -318,8 +318,8 @@ export default function Turnover({
                   <div style={{ minWidth:0 }}>
                     <div style={{ fontFamily:'monospace', fontSize:12, fontWeight:700, color: textPrim, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{b.bNo}</div>
                     <div style={{ display:'flex', gap:5, marginTop:3, flexWrap:'wrap' }}>
-                      {b.code && <span className="badge badge-green" style={{ fontSize:9 }}>{b.code}</span>}
-                      <span style={{ fontSize:10, color: textMut }}>{b.items.length} {lang==='zh'?'桶':'drums'}</span>
+                      {(() => { const ct = containerTypes.find(x => x.code === b.code); return ct ? <span className="badge badge-green" style={{ fontSize:9 }}>{ct.name}</span> : b.code ? <span className="badge badge-green" style={{ fontSize:9 }}>{b.code}</span> : null; })()}
+                      <span style={{ fontSize:10, color: textMut }}>{b.items.length} {lang==='zh'?'個':'pcs'}</span>
                     </div>
                   </div>
                   <button className="btn btn-success btn-sm"
