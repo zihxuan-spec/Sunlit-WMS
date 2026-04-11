@@ -48,7 +48,7 @@ export default function Login({ onLogin, t, lang, setLang, showAlert }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 22, fontWeight: 800, color: '#fff',
             margin: '0 auto 16px',
-          }}>W</div>
+          }}>S</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: isLight ? '#111827' : '#f1f5f9', marginBottom: 4 }}>
             Sunlit WMS
           </div>
