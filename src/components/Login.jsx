@@ -2,115 +2,110 @@ import React, { useState } from 'react';
 import { supabase } from '../config/supabaseClient';
 
 export default function Login({ onLogin, t, lang, setLang, showAlert }) {
- const [nameInput, setNameInput] = useState('');
- const [pin, setPin] = useState('');
- const [step, setStep] = useState('name');
- const [foundUser, setFoundUser] = useState(null);
- const [loading, setLoading] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
 
- const handleNameSubmit = async (e) => {
- e.preventDefault();
- const name = nameInput.trim();
- if (!name) return;
- setLoading(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const name = username.trim();
+    const pw   = password.trim();
+    if (!name || !pw) return showAlert(lang === 'zh' ? '請輸入帳號和密碼' : 'Please enter username and password');
 
- // 用 maybeSingle() 避免找不到時拋 error，同時相容 pin 欄位不存在的情況
- const { data, error } = await supabase
- .from('employees')
- .select('name, role, pin')
- .eq('name', name)
- .maybeSingle();
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('employees')
+      .select('name, role, pin')
+      .eq('name', name)
+      .maybeSingle();
+    setLoading(false);
 
- setLoading(false);
+    if (error || !data) return showAlert(t.msgInvalidUser);
 
- // 若 pin 欄位不存在（舊 schema），error.message 會含 column，改用不含 pin 的查詢
- if (error && error.message?.includes('column')) {
- const { data: data2, error: error2 } = await supabase
- .from('employees')
- .select('name, role')
- .eq('name', name)
- .maybeSingle();
- if (!data2) return showAlert(t.msgInvalidUser);
- return onLogin(data2.name, data2.role || 'Warehouse');
- }
+    // pin field is used as password
+    if (data.pin && data.pin !== pw) {
+      return showAlert(lang === 'zh' ? '密碼錯誤' : 'Incorrect password');
+    }
 
- if (!data) return showAlert(t.msgInvalidUser);
+    onLogin(data.name, data.role || 'Warehouse');
+  };
 
- setFoundUser(data);
- if (data.pin) {
- setStep('pin');
- } else {
- onLogin(data.name, data.role || 'Warehouse');
- }
- };
+  return (
+    <div className="login-container">
+      <div className="login-card">
+        {/* Logo mark */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--dk-accent)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 18, fontWeight: 700, color: '#fff' }}>W</div>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--dk-text)', lineHeight: 1.2 }}>Sunlit WMS</div>
+            <div style={{ fontSize: 11, color: 'var(--dk-text-3)' }}>Warehouse · MES · Production</div>
+          </div>
+        </div>
 
- const handlePinPress = (digit) => {
- if (pin.length >= 6) return;
- const newPin = pin + digit;
- setPin(newPin);
- if (newPin.length >= (foundUser?.pin?.length || 4)) {
- if (newPin === foundUser.pin) {
- setTimeout(() => onLogin(foundUser.name, foundUser.role || 'Warehouse'), 150);
- } else {
- setTimeout(() => { setPin(''); showAlert(t.msgInvalidPin || ' Incorrect PIN'); }, 400);
- }
- }
- };
+        <h2 style={{ fontSize: 22, fontWeight: 600, margin: '0 0 6px', color: 'var(--dk-text)' }}>
+          {lang === 'zh' ? '登入' : 'Sign in'}
+        </h2>
+        <p style={{ fontSize: 13, color: 'var(--dk-text-3)', margin: '0 0 28px' }}>
+          {lang === 'zh' ? '輸入你的帳號和密碼繼續' : 'Enter your credentials to continue'}
+        </p>
 
- const handlePinBack = () => setPin(p => p.slice(0, -1));
+        <form onSubmit={handleSubmit}>
+          {/* Username */}
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--dk-text-2)', display: 'block', marginBottom: 6 }}>
+              {lang === 'zh' ? '帳號' : 'Username'}
+            </label>
+            <input
+              type="text"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              placeholder={lang === 'zh' ? '輸入帳號...' : 'Enter username...'}
+              autoFocus
+              autoComplete="username"
+              style={{ fontSize: 15 }}
+            />
+          </div>
 
- const handleReset = () => {
- setStep('name'); setPin(''); setFoundUser(null); setNameInput('');
- };
+          {/* Password */}
+          <div style={{ marginBottom: 22 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--dk-text-2)', display: 'block', marginBottom: 6 }}>
+              {lang === 'zh' ? '密碼' : 'Password'}
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPw ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder={lang === 'zh' ? '輸入密碼...' : 'Enter password...'}
+                autoComplete="current-password"
+                style={{ fontSize: 15, paddingRight: 44 }}
+              />
+              <button type="button" onClick={() => setShowPw(v => !v)}
+                style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 13, color: 'var(--dk-text-3)', padding: '4px' }}>
+                {showPw ? (lang === 'zh' ? '隱藏' : 'Hide') : (lang === 'zh' ? '顯示' : 'Show')}
+              </button>
+            </div>
+          </div>
 
- return (
- <div className="login-container">
- <div className="login-card">
- <h1 style={{ fontSize: '30px', margin: '0 0 8px 0' }}>{t.loginTitle}</h1>
- <p style={{ color: 'var(--text-secondary)', marginBottom: '28px', fontSize: '15px' }}>{t.loginDesc}</p>
+          <button type="submit" className="btn btn-primary"
+            style={{ width: '100%', padding: '13px', fontSize: 15, fontWeight: 600 }}
+            disabled={loading}>
+            {loading ? (lang === 'zh' ? '登入中...' : 'Signing in...') : (lang === 'zh' ? '登入' : 'Sign in')}
+          </button>
+        </form>
 
- {step === 'name' ? (
- <form onSubmit={handleNameSubmit}>
- <input
- type="text"
- placeholder={t.empIdPlaceholder}
- value={nameInput}
- onChange={e => setNameInput(e.target.value)}
- autoFocus
- style={{ textAlign: 'center', fontSize: '18px', padding: '14px' }}
- />
- <button type="submit" className="btn"
- style={{ width: '100%', fontSize: '17px', padding: '14px', marginTop: '4px' }}
- disabled={loading}>
- {loading ? '...' : t.loginBtn}
- </button>
- </form>
- ) : (
- <div>
- <p style={{ color: 'var(--text-secondary)', marginBottom: '12px', fontSize: '14px' }}>
- {foundUser?.name} — {t.msgEnterPin || 'Enter PIN'}
- </p>
- <div className="pin-display">
- {pin.length > 0 ? '●'.repeat(pin.length) : '○ ○ ○ ○'}
- </div>
- <div className="pin-grid" style={{ marginBottom: '12px' }}>
- {[1,2,3,4,5,6,7,8,9].map(d => (
- <button key={d} className="pin-btn" onClick={() => handlePinPress(String(d))}>{d}</button>
- ))}
- <button className="pin-btn" onClick={handlePinBack} style={{ fontSize: '20px' }}></button>
- <button className="pin-btn" onClick={() => handlePinPress('0')}>0</button>
- <button className="pin-btn" onClick={handleReset}
- style={{ fontSize: '12px', color: 'var(--text-muted)' }}> {lang === 'zh' ? '返回' : 'Back'}</button>
- </div>
- </div>
- )}
-
- <button className="btn btn-secondary"
- style={{ marginTop: '16px', width: '100%', fontSize: '14px' }}
- onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}>
- {t.switchLang}
- </button>
- </div>
- </div>
- );
+        {/* Language toggle */}
+        <button className="btn btn-ghost btn-sm"
+          style={{ width: '100%', marginTop: 14, fontSize: 13 }}
+          onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}>
+          {t.switchLang}
+        </button>
+      </div>
+    </div>
+  );
 }
