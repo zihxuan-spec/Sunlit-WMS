@@ -234,7 +234,7 @@ export default function MES({ t, lang, currentUser, showAlert }) {
   const ct       = activeBatch ? getContainerType(activeBatch.material_code) : null;
   const maxPerP  = ct?.containers_per_pallet || null;
   const currPDrums = packingPallets.find(p => p.palletBarcode === currentPackPallet)?.drums || [];
-  const usePackingUI = isPackagingStep() && (maxPerP || containers.length > 0);
+  const usePackingUI = isPackagingStep() && !!(ct?.is_pallet || ct?.containers_per_pallet);
 
   const colCfg = {
     pending:    { accent:'#f59e0b', bg:'rgba(245,158,11,.08)',  label: t.mesPending    },
@@ -315,7 +315,7 @@ export default function MES({ t, lang, currentUser, showAlert }) {
                 <div style={{ fontSize:12, color:textMut }}>
                   Step {currentStepIdx+1}/{steps.length} · <span style={{ fontFamily:'monospace', color:'var(--dk-accent)' }}>{activeBatch.batch_no}</span> · {activeBatch.material_code}
                   {containers.length > 0 && <span> · {containers.length} {ct?.name || (lang==='zh'?'桶':'drums')}</span>}
-                  {ct && <span className="badge badge-gray" style={{ marginLeft:6, fontSize:9 }}>{ct.is_pallet ? 'PALLET' : 'DRUM'}{ct.is_reusable ? ' · REUSABLE' : ''}</span>}
+                  {ct && <span className="badge badge-gray" style={{ marginLeft:6, fontSize:9 }}>{ct.name}{ct.is_reusable ? ' · REUSABLE' : ''}</span>}
                 </div>
               </div>
               <button className="btn btn-ghost btn-sm" disabled={isSubmitting} onClick={() => setActiveBatch(null)}>{t.btnClose}</button>
