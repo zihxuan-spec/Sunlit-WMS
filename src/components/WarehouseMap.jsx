@@ -135,11 +135,11 @@ export default function WarehouseMap({
             pickOrder = outboundPending.findIndex(p => p.id === shelf.id);
             isTarget = pickOrder > -1;
             if (selectedOutboundAssign) { isReadyAssign = isEmpty; opacity = isEmpty ? 1 : 0.35; }
-            else { if (!isTarget && !isEmpty) opacity = 0.6; if (isEmpty) opacity = 0.4; }
+            else { if (!isTarget && !isEmpty) opacity = 0.7; if (isEmpty) opacity = 0.65; }
           } else if (currentView === 'inbound') {
             isTransferTarget = inboundTransferSelected.some(p => p.id === shelf.id);
             if (selectedPending) { isReadyAssign = isEmpty; opacity = isEmpty ? 1 : 0.35; }
-            else { if (!isEmpty && !isTransferTarget) opacity = 0.7; }
+            else { if (!isEmpty && !isTransferTarget) opacity = 0.7; if (isEmpty) opacity = 0.65; }
           }
 
           let cls = isEmpty ? 'shelf shelf-empty' : 'shelf shelf-occupied';
