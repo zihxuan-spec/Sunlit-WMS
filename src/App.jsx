@@ -14,6 +14,7 @@ import Turnover from './pages/Turnover';
 import ZebraScanner from './pages/ZebraScanner';
 import ZebraTool from './components/ZebraTool';
 import ProductionRecord from './pages/ProductionRecord';
+import Admin from './pages/Admin';
 
 export default function App() {
   const [lang, setLang] = useState('en');
@@ -479,6 +480,7 @@ export default function App() {
 
       <div className="main-content">
         {currentView === 'production_record' && <ProductionRecord t={t} lang={lang} />}
+        {currentView === 'admin' && <Admin lang={lang} showAlert={showAlert} showConfirm={showConfirm} />}
         {currentView === 'dashboard' && <Dashboard t={t} lang={lang} shelves={shelves} turnoverItems={turnoverItems} inProductionCount={inProductionCount} showAlert={showAlert}
           onRefresh={async () => { await fetchShelves(); await fetchTurnover(); }} />}
         {currentView === 'zebra'             && <ZebraScanner t={t} currentUser={currentUser} />}
