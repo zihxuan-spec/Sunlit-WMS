@@ -50,7 +50,7 @@ export default function MES({ t, lang, currentUser, showAlert }) {
     setBatchesLoading(true);
     const { data, error } = await supabase
       .from('production_batches')
-      .select('*, production_containers(count), customers(name)')
+      .select('*, production_containers(count)')
       .order('created_at', { ascending: false });
     setBatchesLoading(false);
     if (error) { showAlert(lang === 'zh' ? '載入批次失敗，請重新整理。' : 'Failed to load batches. Please refresh.'); return; }
@@ -289,7 +289,7 @@ export default function MES({ t, lang, currentUser, showAlert }) {
                         <>
                           {count > 0 && <span>{count} {label}</span>}
                           {!count && <span>{label}</span>}
-                          {b.customers?.name && <span style={{ marginLeft:6 }}>· {b.customers.name}</span>}
+      
                           {status === 'processing' && <span style={{ marginLeft:6, color:colCfg.processing.accent }}>· {lang==='zh'?'生產中':'In progress'}</span>}
                         </>
                       );
