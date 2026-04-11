@@ -4,7 +4,7 @@ import { supabase } from '../config/supabaseClient';
 export default function ProductionRecord({ t, lang }) {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState({ customer: '', status: '', search: '' });
+  const [filter, setFilter] = useState({ customer: '', status: '', search: '', month: '' });
 
   useEffect(() => { fetchRecords(); }, []);
 
@@ -21,6 +21,10 @@ export default function ProductionRecord({ t, lang }) {
   const filtered = records.filter(r => {
     if (filter.customer && r.customer !== filter.customer) return false;
     if (filter.status && r.status !== filter.status) return false;
+    if (filter.month && r.created_at) {
+      const m = r.created_at.slice(0, 7); // 'YYYY-MM'
+      if (m !== filter.month) return false;
+    }
     if (filter.search) {
       const q = filter.search.toLowerCase();
       if (!r.batch_no?.toLowerCase().includes(q) && !r.material_code?.toLowerCase().includes(q) && !r.customer?.toLowerCase().includes(q)) return false;
@@ -29,6 +33,8 @@ export default function ProductionRecord({ t, lang }) {
   });
 
   const customers = [...new Set(records.map(r => r.customer).filter(Boolean))].sort();
+  const months = [...new Set(records.map(r => r.created_at?.slice(0,7)).filter(Boolean))].sort().reverse();
+  const fmtMonth = (m) => { const [y,mo] = m.split('-'); return `${y}/${mo}`; };
 
   // Status label and badge
   const statusBadge = (s) => {
@@ -97,8 +103,13 @@ export default function ProductionRecord({ t, lang }) {
             <option value="">{lang === 'zh' ? '所有客戶' : 'All customers'}</option>
             {customers.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-          {(filter.search || filter.status || filter.customer) && (
-            <button className="btn btn-ghost btn-sm" onClick={() => setFilter({ customer: '', status: '', search: '' })}>
+          <select value={filter.month} onChange={e => setFilter(f => ({ ...f, month: e.target.value }))}
+            style={{ width:120, margin:0, padding:'7px 10px', fontSize:13 }}>
+            <option value="">{lang === 'zh' ? '所有月份' : 'All months'}</option>
+            {months.map(m => <option key={m} value={m}>{fmtMonth(m)}</option>)}
+          </select>
+          {(filter.search || filter.status || filter.customer || filter.month) && (
+            <button className="btn btn-ghost btn-sm" onClick={() => setFilter({ customer: '', status: '', search: '', month: '' })}>
               {lang === 'zh' ? '清除' : 'Clear'}
             </button>
           )}
