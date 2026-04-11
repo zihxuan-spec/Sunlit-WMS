@@ -479,7 +479,8 @@ export default function App() {
 
       <div className="main-content">
         {currentView === 'production_record' && <ProductionRecord t={t} lang={lang} />}
-        {currentView === 'dashboard'         && <Dashboard t={t} lang={lang} shelves={shelves} turnoverItems={turnoverItems} inProductionCount={inProductionCount} showAlert={showAlert} />}
+        {currentView === 'dashboard' && <Dashboard t={t} lang={lang} shelves={shelves} turnoverItems={turnoverItems} inProductionCount={inProductionCount} showAlert={showAlert}
+          onRefresh={async () => { await fetchShelves(); await fetchTurnover(); }} />}
         {currentView === 'zebra'             && <ZebraScanner t={t} currentUser={currentUser} />}
         {currentView === 'reusable'          && <ReusableTracking t={t} lang={lang} showAlert={showAlert} />}
         {currentView === 'mes'               && <MES t={t} lang={lang} currentUser={currentUser} showAlert={showAlert} />}
