@@ -222,7 +222,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
   const statusBadge=(item)=>item.is_critical?<span className="badge badge-red">{L('Critical','缺料')}</span>:item.is_low?<span className="badge badge-amber">{L('Low','低庫存')}</span>:<span className="badge badge-green">{L('OK','正常')}</span>;
 
   const lbl={fontSize:12,fontWeight:600,color:'var(--dk-text-3)',display:'block',marginBottom:4};
-  const thStyle={padding:'8px 12px',textAlign:'left',fontWeight:600,fontSize:11,color:'var(--dk-text-3)',textTransform:'uppercase',letterSpacing:'.4px',background:'var(--dk-surface2)',borderBottom:'1px solid var(--border)',whiteSpace:'nowrap'};
+  const thStyle={padding:'8px 12px',textAlign:'left',fontWeight:600,fontSize:11,color:'var(--dk-text-3)',textTransform:'uppercase',letterSpacing:'.4px',background:'#f9fafb',borderBottom:'1px solid var(--border)',whiteSpace:'nowrap'};
   const tdStyle={padding:'9px 12px',borderBottom:'1px solid var(--border)',verticalAlign:'middle'};
 
   return (
@@ -418,7 +418,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:14}}>
           <div><label style={lbl}>{L('PO / Reference *','單號/用途 *')}</label><input value={txRef} onChange={e=>setTxRef(e.target.value)} style={{width:'100%',boxSizing:'border-box'}}/></div>
           <div><label style={lbl}>{L('Operator *','操作人員 *')}</label><input value={txUser} onChange={e=>setTxUser(e.target.value)} style={{width:'100%',boxSizing:'border-box'}}/></div>
-          <div><label style={lbl}>{L('Date','日期')}</label><input type="date" defaultValue={new Date().toISOString().split('T')[0]} readOnly style={{width:'100%',boxSizing:'border-box',background:'var(--dk-surface2)'}}/></div>
+          <div><label style={lbl}>{L('Date','日期')}</label><input type="date" defaultValue={new Date().toISOString().split('T')[0]} readOnly style={{width:'100%',boxSizing:'border-box',background:'#f9fafb'}}/></div>
         </div>
         <div style={{overflowX:'auto'}}>
           <table style={{width:'100%',borderCollapse:'collapse',minWidth:520}}>
@@ -437,9 +437,9 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
                     </div>)}
                   </div>}
                 </td>
-                <td style={tdStyle}><input value={row.info} readOnly style={{width:'100%',boxSizing:'border-box',margin:0,background:'var(--dk-surface2)',color:'var(--dk-text-3)'}}/></td>
+                <td style={tdStyle}><input value={row.info} readOnly style={{width:'100%',boxSizing:'border-box',margin:0,background:'#f9fafb',color:'var(--dk-text-3)'}}/></td>
                 <td style={tdStyle}><input type="number" min="1" value={row.qty} style={{width:'100%',boxSizing:'border-box',margin:0}} onChange={e=>setTxRows(r=>r.map((x,i)=>i===idx?{...x,qty:e.target.value}:x))}/></td>
-                <td style={tdStyle}><input value={row.loc} readOnly={txType==='issue'} style={{width:'100%',boxSizing:'border-box',margin:0,...(txType==='issue'?{background:'var(--dk-surface2)',color:'var(--dk-text-3)'}:{})}} onChange={e=>setTxRows(r=>r.map((x,i)=>i===idx?{...x,loc:e.target.value}:x))}/></td>
+                <td style={tdStyle}><input value={row.loc} readOnly={txType==='issue'} style={{width:'100%',boxSizing:'border-box',margin:0,...(txType==='issue'?{background:'#f9fafb',color:'var(--dk-text-3)'}:{})}} onChange={e=>setTxRows(r=>r.map((x,i)=>i===idx?{...x,loc:e.target.value}:x))}/></td>
                 <td style={{...tdStyle,textAlign:'center'}}>{txRows.length>1&&<span style={{cursor:'pointer',color:'var(--dk-text-4)',fontSize:16}} onClick={()=>setTxRows(r=>r.filter((_,i)=>i!==idx))}>✕</span>}</td>
               </tr>
             ))}</tbody>
@@ -463,7 +463,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
           </div>
           <button className="btn btn-ghost btn-sm" onClick={()=>setDetOpen(false)}>✕</button>
         </div>
-        <div style={{background:'var(--dk-surface2)',borderRadius:8,padding:14,marginBottom:14,display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,fontSize:13}}>
+        <div style={{background:'#f9fafb',borderRadius:8,padding:14,marginBottom:14,display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,fontSize:13}}>
           <div><span style={{color:'var(--dk-text-3)'}}>{L('Stock','庫存')}: </span><strong style={{fontSize:22,color:'var(--dk-accent)'}}>{detItem.stock??0}</strong> <span style={{fontSize:11,color:'var(--dk-text-3)'}}>{detItem.unit}</span></div>
           <div><span style={{color:'var(--dk-text-3)'}}>{L('Status','狀態')}: </span>{statusBadge(detItem)}</div>
           <div style={{gridColumn:'1/-1'}}><span style={{color:'var(--dk-text-3)'}}>{L('Description','品名')}: </span><span style={{color:'var(--dk-text)'}}>{detItem.description}</span></div>
@@ -504,7 +504,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
           {[['part_number',L('Part Number *','料號 *'),'text',masterModal!=='create'],['model',L('Model','型號'),'text',false],['description',L('Description','品名描述'),'text',false],['unit',L('Unit','單位'),'text',false],['safety_stock',L('Safety Stock','安全庫存'),'number',false]].map(([key,label,type,ro])=>(
             <div key={key}>
               <label style={lbl}>{label}</label>
-              <input type={type} value={masterForm[key]} readOnly={ro} style={{width:'100%',boxSizing:'border-box',...(ro?{background:'var(--dk-surface2)',color:'var(--dk-text-3)'}:{})}}
+              <input type={type} value={masterForm[key]} readOnly={ro} style={{width:'100%',boxSizing:'border-box',...(ro?{background:'#f9fafb',color:'var(--dk-text-3)'}:{})}}
                 onChange={e=>{setMasterForm(f=>({...f,[key]:e.target.value}));if(key==='part_number')checkPn(e.target.value);}}/>
               {key==='part_number'&&masterFb&&<span style={{fontSize:11,color:masterFb.includes('✓')?'#10b981':'#ef4444'}}>{masterFb}</span>}
             </div>
