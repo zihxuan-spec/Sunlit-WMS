@@ -3,5 +3,12 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  // 把原本的 base: '/wms-project/' 整行刪掉！
+  optimizeDeps: {
+    include: ['xlsx'],
+  },
+  build: {
+    commonjsOptions: {
+      include: [/xlsx/, /node_modules/],
+    },
+  },
 })
