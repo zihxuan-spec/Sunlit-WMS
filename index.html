@@ -16,14 +16,9 @@
   <link rel="manifest" href="/manifest.json">
   <!-- Fix 1: Apply theme class BEFORE React mounts to prevent flash -->
   <script>
-    (function() {
-      // Apply light class immediately to prevent dark flash on load
-      // Default is always light unless user explicitly chose dark
-      var theme = localStorage.getItem('wms_theme');
-      if (theme !== 'dark') {
-        document.documentElement.classList.add('light');
-      }
-    })();
+    // Always light mode — dark mode removed
+    document.documentElement.classList.add('light');
+    localStorage.setItem('wms_theme', 'light');
   </script>
 </head>
 <body>
