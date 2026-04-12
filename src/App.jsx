@@ -19,21 +19,12 @@ import SparePart from './pages/SparePart';
 
 export default function App() {
   const [lang, setLang] = useState('en');
-  const [theme, setTheme] = useState(() => {
-    // Always default to light — only use dark if explicitly saved
-    return localStorage.getItem('wms_theme') === 'dark' ? 'dark' : 'light';
-  });
+  // Dark mode removed — always light
+  const theme = 'light';
   useEffect(() => {
-    // Explicit add/remove — never use classList.toggle which can be unreliable
-    if (theme === 'light') {
-      document.documentElement.classList.add('light');
-    } else {
-      document.documentElement.classList.remove('light');
-    }
-    localStorage.setItem('wms_theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    document.documentElement.classList.add('light');
+    localStorage.setItem('wms_theme', 'light');
+  }, []);
 
   // ── Auth state (declared BEFORE auth useEffect) ───────────
   const [currentUser, setCurrentUser] = useState(null);
@@ -594,7 +585,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <GlobalModal modal={modal} closeModal={closeModal} t={t} />
-      <Navbar currentUser={currentUser} userRole={userRole} handleLogout={handleLogout} lang={lang} setLang={setLang} currentView={currentView} setCurrentView={setCurrentView} t={t} theme={theme} toggleTheme={toggleTheme} realtimeOk={realtimeOk} />
+      <Navbar currentUser={currentUser} userRole={userRole} handleLogout={handleLogout} lang={lang} setLang={setLang} currentView={currentView} setCurrentView={setCurrentView} t={t} realtimeOk={realtimeOk} />
 
       <div className="main-content">
         {currentView === 'production_record' && <ProductionRecord t={t} lang={lang} />}
