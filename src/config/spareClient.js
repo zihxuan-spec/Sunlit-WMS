@@ -14,3 +14,5 @@ const storage = {
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: { storage, storageKey: 'wms-auth', autoRefreshToken: true, persistSession: true },
 });
+
+export const spareSupabase = supabase;
