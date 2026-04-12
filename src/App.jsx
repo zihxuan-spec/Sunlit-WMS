@@ -34,18 +34,16 @@ export default function App() {
 
   const loadProfile = async (uid) => {
     try {
-      // Try profiles table first (new Supabase Auth system)
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('name, role')
-        .eq('id', uid)
-        .single();
+      // Query profiles with 3s timeout — prevents RLS recursion from hanging forever
+      const { data, error } = await Promise.race([
+        supabase.from('profiles').select('name, role').eq('id', uid).single(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('profiles timeout')), 3000)),
+      ]);
       if (data) {
         setCurrentUser(data.name);
         setUserRole(data.role || 'Warehouse');
         return;
       }
-      // If error (e.g. table doesn't exist or no row), log for debugging
       if (error) console.warn('[WMS] profiles lookup failed:', error.message);
     } catch (e) {
       console.warn('[WMS] profiles error:', e.message);
@@ -95,7 +93,7 @@ export default function App() {
     init();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        await loadProfile(session.user.id);
+        await loadProfile(session.user.id); // timeout already inside loadProfile
       } else if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
         setUserRole('Warehouse');
