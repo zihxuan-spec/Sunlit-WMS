@@ -32,68 +32,29 @@ export default function App() {
   const [userRole, setUserRole] = useState('Warehouse');
   const [authReady, setAuthReady] = useState(false);
 
-  const loadProfile = async (uid) => {
-    try {
-      // Query profiles with 3s timeout — prevents RLS recursion from hanging forever
-      const { data, error } = await Promise.race([
-        supabase.from('profiles').select('name, role').eq('id', uid).single(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('profiles timeout')), 3000)),
-      ]);
-      if (data) {
-        setCurrentUser(data.name);
-        setUserRole(data.role || 'Warehouse');
-        return;
-      }
-      if (error) console.warn('[WMS] profiles lookup failed:', error.message);
-    } catch (e) {
-      console.warn('[WMS] profiles error:', e.message);
-    }
-    // Fallback: get display name from Auth user metadata
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const name = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
-      const role = user?.user_metadata?.role || 'Warehouse';
-      setCurrentUser(name);
-      setUserRole(role);
-    } catch(e) {
-      console.warn('[WMS] getUser fallback error:', e.message);
-    }
+  // Apply user from session object — no extra network call needed
+  const applySession = (session) => {
+    if (!session?.user) return;
+    const email = session.user.email || '';
+    const fallbackName = email.split('@')[0] || 'User';
+    const fallbackRole = 'Warehouse';
+    setCurrentUser(fallbackName);
+    setUserRole(fallbackRole);
+    // Then try to enrich with profiles data (non-blocking, best-effort)
+    supabase.from('profiles').select('name, role').eq('id', session.user.id).single()
+      .then(({ data }) => {
+        if (data?.name) setCurrentUser(data.name);
+        if (data?.role) setUserRole(data.role);
+      })
+      .catch(() => {}); // ignore — fallback already set above
   };
 
   useEffect(() => {
-    // Hard timeout: if auth takes >6s for any reason, unblock the UI
-    const timeout = setTimeout(() => {
-      console.warn('[WMS] Auth timeout — forcing authReady');
-      setAuthReady(true);
-    }, 6000);
-
-    const init = async () => {
-      try {
-        // Quick connectivity check: if Supabase URL is missing, fail fast
-        if (!import.meta.env.VITE_SUPABASE_URL) {
-          console.error('[WMS] VITE_SUPABASE_URL not set in environment');
-          return;
-        }
-
-        const sessionResult = await supabase.auth.getSession();
-        const session = sessionResult?.data?.session;
-        if (session?.user) {
-          await Promise.race([
-            loadProfile(session.user.id),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('profile timeout')), 4000)),
-          ]).catch(e => console.warn('[WMS] loadProfile:', e.message));
-        }
-      } catch (e) {
-        console.warn('[WMS] getSession error:', e.message);
-      } finally {
-        clearTimeout(timeout);
-        setAuthReady(true);
-      }
-    };
-    init();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Step 1: listen for auth events FIRST (before getSession)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        await loadProfile(session.user.id); // timeout already inside loadProfile
+        applySession(session);
+        setAuthReady(true);
       } else if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
         setUserRole('Warehouse');
@@ -102,7 +63,22 @@ export default function App() {
         setOutboundAssignItemsState([]);
       }
     });
-    return () => subscription.unsubscribe();
+
+    // Step 2: restore existing session if any
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) applySession(session);
+      setAuthReady(true);
+    }).catch(() => {
+      setAuthReady(true);
+    });
+
+    // Step 3: hard fallback — always unblock UI after 8s
+    const timeout = setTimeout(() => setAuthReady(true), 8000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const t = dict[lang];
@@ -555,21 +531,10 @@ export default function App() {
 
   // Show nothing while auth is resolving (prevents flash of login page)
   if (!authReady) return (
-    <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-      background:'#0f172a', gap:16, padding:24, fontFamily:'monospace' }}>
-      <div style={{ width:32, height:32, border:'3px solid #334155', borderTopColor:'#3b82f6', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
-      <div style={{ fontSize:13, color:'#94a3b8' }}>Connecting to Supabase...</div>
-      <div style={{ background:'#1e293b', borderRadius:8, padding:16, maxWidth:480, width:'100%', fontSize:11, color:'#64748b', lineHeight:2 }}>
-        <div><span style={{color:'#94a3b8'}}>URL:</span> {import.meta.env.VITE_SUPABASE_URL
-          ? <span style={{color:'#4ade80'}}>{import.meta.env.VITE_SUPABASE_URL.slice(0,40)}...</span>
-          : <span style={{color:'#f87171'}}>❌ VITE_SUPABASE_URL not set in Vercel</span>}</div>
-        <div><span style={{color:'#94a3b8'}}>KEY:</span> {import.meta.env.VITE_SUPABASE_ANON_KEY
-          ? <span style={{color:'#4ade80'}}>✓ set ({import.meta.env.VITE_SUPABASE_ANON_KEY.slice(0,12)}...)</span>
-          : <span style={{color:'#f87171'}}>❌ VITE_SUPABASE_ANON_KEY not set in Vercel</span>}</div>
-      </div>
-      <div style={{ fontSize:11, color:'#475569', textAlign:'center', maxWidth:420 }}>
-        If both show ❌, go to Vercel → Settings → Environment Variables and add them, then Redeploy.
-      </div>
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
+      background: theme === 'light' ? '#f3f4f6' : '#0f1623' }}>
+      <div style={{ width:28, height:28, border:`3px solid ${theme==='light'?'#e5e7eb':'#2d3748'}`,
+        borderTopColor:'#3b82f6', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
