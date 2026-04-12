@@ -17,8 +17,12 @@
   <!-- Fix 1: Apply theme class BEFORE React mounts to prevent flash -->
   <script>
     (function() {
-      var theme = localStorage.getItem('wms_theme') || 'light';
-      if (theme === 'light') document.documentElement.classList.add('light');
+      // Apply light class immediately to prevent dark flash on load
+      // Default is always light unless user explicitly chose dark
+      var theme = localStorage.getItem('wms_theme');
+      if (theme !== 'dark') {
+        document.documentElement.classList.add('light');
+      }
     })();
   </script>
 </head>
