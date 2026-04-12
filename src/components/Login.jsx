@@ -60,49 +60,47 @@ export default function Login({ onLogin, lang, setLang, showAlert }) {
     // Success — onAuthStateChange in App.jsx will handle the rest
   };
 
-  const isLight = document.documentElement.classList.contains('light');
-  const C = (l, d) => isLight ? l : d;
 
   return (
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
-      background: C('#f3f4f6','#0f1623'), padding:24 }}>
-      <div style={{ width:'100%', maxWidth:400, background: C('#fff','#1e2535'),
-        border:`1px solid ${C('#e5e7eb','#2d3748')}`, borderRadius:16, padding:'44px 40px',
-        boxShadow: C('0 4px 24px rgba(0,0,0,.08)','0 4px 24px rgba(0,0,0,.4)') }}>
+      background: '#f3f4f6', padding:24 }}>
+      <div style={{ width:'100%', maxWidth:400, background: '#fff',
+        border:`1px solid ${'#e5e7eb'}`, borderRadius:16, padding:'44px 40px',
+        boxShadow: '0 4px 24px rgba(0,0,0,.08)' }}>
 
         <div style={{ textAlign:'center', marginBottom:36 }}>
           <div style={{ width:52, height:52, borderRadius:14, background:'#3b82f6', display:'flex',
             alignItems:'center', justifyContent:'center', fontSize:22, fontWeight:800, color:'#fff', margin:'0 auto 16px' }}>S</div>
-          <div style={{ fontSize:20, fontWeight:700, color: C('#111827','#f1f5f9'), marginBottom:4 }}>Sunlit WMS</div>
-          <div style={{ fontSize:12, color: C('#6b7280','#64748b'), letterSpacing:'.5px' }}>Warehouse · MES · Production</div>
+          <div style={{ fontSize:20, fontWeight:700, color: '#111827', marginBottom:4 }}>Sunlit WMS</div>
+          <div style={{ fontSize:12, color: '#6b7280', letterSpacing:'.5px' }}>Warehouse · MES · Production</div>
         </div>
 
         <div style={{ marginBottom:24 }}>
-          <div style={{ fontSize:18, fontWeight:600, color: C('#111827','#f1f5f9'), marginBottom:4 }}>
+          <div style={{ fontSize:18, fontWeight:600, color: '#111827', marginBottom:4 }}>
             {lang === 'zh' ? '登入帳號' : 'Sign in'}
           </div>
-          <div style={{ fontSize:12, color: C('#6b7280','#64748b') }}>
+          <div style={{ fontSize:12, color: '#6b7280' }}>
             {lang === 'zh' ? '輸入你的帳號和密碼繼續' : 'Enter your credentials to continue'}
           </div>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom:14 }}>
-            <label style={{ display:'block', fontSize:12, fontWeight:600, marginBottom:6, color: C('#374151','#94a3b8') }}>
+            <label style={{ display:'block', fontSize:12, fontWeight:600, marginBottom:6, color: '#374151' }}>
               {lang === 'zh' ? '帳號' : 'Username'}
             </label>
             <input type="text" value={username} onChange={e => setUsername(e.target.value)}
               placeholder={lang === 'zh' ? '輸入帳號' : 'Enter username'}
               autoFocus autoComplete="username"
               style={{ width:'100%', padding:'11px 14px', fontSize:14, boxSizing:'border-box',
-                border:`1.5px solid ${C('#d1d5db','#334155')}`, borderRadius:8, outline:'none',
-                background: C('#f9fafb','#0f1623'), color: C('#111827','#f1f5f9') }}
+                border:`1.5px solid ${'#d1d5db'}`, borderRadius:8, outline:'none',
+                background: '#f9fafb', color: '#111827' }}
               onFocus={e => e.target.style.borderColor='#3b82f6'}
-              onBlur={e => e.target.style.borderColor=C('#d1d5db','#334155')} />
+              onBlur={e => e.target.style.borderColor='#d1d5db'} />
           </div>
 
           <div style={{ marginBottom: errMsg ? 12 : 24 }}>
-            <label style={{ display:'block', fontSize:12, fontWeight:600, marginBottom:6, color: C('#374151','#94a3b8') }}>
+            <label style={{ display:'block', fontSize:12, fontWeight:600, marginBottom:6, color: '#374151' }}>
               {lang === 'zh' ? '密碼' : 'Password'}
             </label>
             <div style={{ position:'relative' }}>
@@ -110,13 +108,13 @@ export default function Login({ onLogin, lang, setLang, showAlert }) {
                 placeholder={lang === 'zh' ? '輸入密碼' : 'Enter password'}
                 autoComplete="current-password"
                 style={{ width:'100%', padding:'11px 48px 11px 14px', fontSize:14, boxSizing:'border-box',
-                  border:`1.5px solid ${C('#d1d5db','#334155')}`, borderRadius:8, outline:'none',
-                  background: C('#f9fafb','#0f1623'), color: C('#111827','#f1f5f9') }}
+                  border:`1.5px solid ${'#d1d5db'}`, borderRadius:8, outline:'none',
+                  background: '#f9fafb', color: '#111827' }}
                 onFocus={e => e.target.style.borderColor='#3b82f6'}
-                onBlur={e => e.target.style.borderColor=C('#d1d5db','#334155')} />
+                onBlur={e => e.target.style.borderColor='#d1d5db'} />
               <button type="button" onClick={() => setShowPw(v => !v)}
                 style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)',
-                  background:'none', border:'none', cursor:'pointer', fontSize:11, fontWeight:600, color: C('#6b7280','#64748b') }}>
+                  background:'none', border:'none', cursor:'pointer', fontSize:11, fontWeight:600, color: '#6b7280' }}>
                 {showPw ? (lang === 'zh' ? '隱藏' : 'Hide') : (lang === 'zh' ? '顯示' : 'Show')}
               </button>
             </div>
@@ -140,10 +138,10 @@ export default function Login({ onLogin, lang, setLang, showAlert }) {
 
         <button onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
           style={{ display:'block', width:'100%', marginTop:14, padding:10, fontSize:13, fontWeight:500,
-            textAlign:'center', background:'transparent', border:`1.5px solid ${C('#e5e7eb','#2d3748')}`,
-            borderRadius:8, cursor:'pointer', color: C('#6b7280','#64748b') }}
+            textAlign:'center', background:'transparent', border:`1.5px solid ${'#e5e7eb'}`,
+            borderRadius:8, cursor:'pointer', color: '#6b7280' }}
           onMouseEnter={e => { e.target.style.borderColor='#3b82f6'; e.target.style.color='#3b82f6'; }}
-          onMouseLeave={e => { e.target.style.borderColor=C('#e5e7eb','#2d3748'); e.target.style.color=C('#6b7280','#64748b'); }}>
+          onMouseLeave={e => { e.target.style.borderColor='#e5e7eb'; e.target.style.color='#6b7280'; }}>
           {lang === 'zh' ? 'English' : '中文'}
         </button>
       </div>
