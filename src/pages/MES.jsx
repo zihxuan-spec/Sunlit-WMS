@@ -279,12 +279,11 @@ export default function MES({ t, lang, currentUser, showAlert }) {
     completed:  { accent: '#10b981', bg: 'rgba(16,185,129,.08)', label: t.mesCompleted   },
   };
 
-  const isLight  = document.documentElement.classList.contains('light');
-  const surface  = isLight ? '#fff' : 'var(--dk-surface)';
+  const surface  = 'var(--dk-surface)'; // dk-surface now = #fff
   const surface2 = 'var(--bg-section)';
   const border   = 'var(--border)';
-  const textPrim = isLight ? '#111827' : 'var(--dk-text)';
-  const textMut  = isLight ? '#6b7280' : 'var(--dk-text-3)';
+  const textPrim = 'var(--dk-text)';
+  const textMut  = 'var(--dk-text-3)';
 
   return (
     <div>
