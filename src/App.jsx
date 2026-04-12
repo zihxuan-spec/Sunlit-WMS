@@ -20,10 +20,11 @@ import SparePart from './pages/SparePart';
 export default function App() {
   const [lang, setLang] = useState('en');
   const [theme, setTheme] = useState(() => {
-    const stored = localStorage.getItem('wms_theme');
-    return stored === 'dark' ? 'dark' : 'light'; // default to light
+    // Always default to light — only use dark if explicitly saved
+    return localStorage.getItem('wms_theme') === 'dark' ? 'dark' : 'light';
   });
   useEffect(() => {
+    // Explicit add/remove — never use classList.toggle which can be unreliable
     if (theme === 'light') {
       document.documentElement.classList.add('light');
     } else {
@@ -32,7 +33,7 @@ export default function App() {
     localStorage.setItem('wms_theme', theme);
   }, [theme]);
 
-  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
+  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
   // ── Auth state (declared BEFORE auth useEffect) ───────────
   const [currentUser, setCurrentUser] = useState(null);
