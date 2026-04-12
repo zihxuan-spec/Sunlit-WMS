@@ -35,21 +35,21 @@ const NAV_GROUPS = [
     ],
   },
   {
-    key: 'tool',
-    label: 'Tool',
-    color: '#14b8a6',
-    roles: ['Admin', 'Warehouse', 'Production'],
-    items: [
-      { key: 'zebra', label: { en: 'Zebra Scanner', zh: 'Zebra' } },
-    ],
-  },
-  {
     key: 'sparepart',
     label: 'Spare Part',
     color: '#0891b2',
     roles: ['Admin', 'QC', 'Facility'],
     items: [
       { key: 'sparepart', label: { en: 'Spare Part Mgmt', zh: '備品管理' } },
+    ],
+  },
+  {
+    key: 'tool',
+    label: 'Tool',
+    color: '#14b8a6',
+    roles: ['Admin', 'Warehouse', 'Production'],
+    items: [
+      { key: 'zebra', label: { en: 'Zebra Scanner', zh: 'Zebra' } },
     ],
   },
   {
@@ -164,7 +164,8 @@ export default function Navbar({ currentUser, userRole, handleLogout, lang, setL
                item.key === 'map' ? 'MAP' :
                item.key === 'mes' ? 'MES' :
                item.key === 'reusable' ? 'RCY' :
-               item.key === 'zebra' ? 'ZBR' : ''}
+               item.key === 'zebra' ? 'ZBR' :
+               item.key === 'sparepart' ? 'SP' : ''}
             </div>
             <span className="tab-label">{item.label[lang] || item.label.en}</span>
           </button>
