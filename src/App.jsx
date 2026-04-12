@@ -300,7 +300,7 @@ export default function App() {
   };
 
   const handleAutoAssign = async (zoneStr) => {
-    const empty = shelves.filter(s => s.zone === zoneStr && s.status === 'empty');
+    const empty = shelves.filter(s => s.warehouse === 'North Warehouse' && s.zone === zoneStr && s.status === 'empty');
     if (!empty.length) return showAlert(t.msgNoSpace);
     const n = Math.min(pendingItems.length, empty.length);
     const toAssign = pendingItems.slice(0, n);
@@ -489,7 +489,7 @@ export default function App() {
 
       <div className="main-content">
         {currentView === 'production_record' && <ProductionRecord t={t} lang={lang} />}
-        {currentView === 'admin' && <Admin lang={lang} showAlert={showAlert} showConfirm={showConfirm} currentUser={currentUser} />}
+        {currentView === 'admin' && userRole === 'Admin' && <Admin lang={lang} showAlert={showAlert} showConfirm={showConfirm} currentUser={currentUser} />}
         {currentView === 'dashboard' && <Dashboard t={t} lang={lang} shelves={shelves} turnoverItems={turnoverItems} inProductionCount={inProductionCount} showAlert={showAlert}
           onRefresh={async () => { await fetchShelves(); await fetchTurnover(); }} />}
         {currentView === 'zebra'             && <ZebraScanner t={t} currentUser={currentUser} />}
