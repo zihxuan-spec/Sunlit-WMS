@@ -235,20 +235,22 @@ body {
 }
 .page-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  margin-bottom: 22px;
+  padding: 16px 0 16px 0;
+  margin-bottom: 20px;
   gap: 12px;
   flex-wrap: wrap;
+  border-bottom: 1px solid var(--lt-border);
 }
 .page-title {
   font-size: 17px;
-  font-weight: 600;
-  color: var(--dk-text);
+  font-weight: 700;
+  color: var(--lt-text);
 }
 .page-subtitle {
-  font-size: 11px;
-  color: var(--dk-text-3);
+  font-size: 12px;
+  color: var(--lt-text-2);
   margin-top: 3px;
 }
 
@@ -958,7 +960,7 @@ html.light .sidebar-status  { color: var(--lt-text-3); }
 html.light .sidebar-footer  { border-top-color: var(--lt-border); }
 
 /* ── Page header ── */
-html.light .page-header { background: #fff; border-bottom-color: var(--lt-border); }
+html.light .page-header { background: transparent; border-bottom-color: var(--lt-border); }
 html.light .page-title  { color: var(--lt-text); }
 html.light .page-subtitle { color: var(--lt-text-2); }
 
