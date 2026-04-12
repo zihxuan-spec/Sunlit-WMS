@@ -196,14 +196,13 @@ export default function Turnover({
   };
 
   // ── Styles ───────────────────────────────────────────────
-  const isLight = document.documentElement.classList.contains('light');
-  const surface  = isLight ? '#ffffff' : 'var(--dk-surface)';
+  const surface  = 'var(--dk-surface)'; // dk-surface now = #fff
   const surface2 = 'var(--bg-section)';
   const border   = 'var(--border)';
-  const textPrim = isLight ? '#111827' : 'var(--dk-text)';
-  const textMut  = isLight ? '#6b7280' : 'var(--dk-text-3)';
-  const accentBg = isLight ? '#dbeafe' : 'var(--dk-accent-bg)';
-  const accentTx = isLight ? '#1d4ed8' : '#93c5fd';
+  const textPrim = 'var(--dk-text)';
+  const textMut  = 'var(--dk-text-3)';
+  const accentBg = 'var(--dk-accent-bg)'; // now = #eff6ff
+  const accentTx = '#1d4ed8'; // light mode only
 
   const colH = (accent) => ({
     display:'flex', alignItems:'center', gap:8,
