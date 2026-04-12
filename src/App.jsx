@@ -71,13 +71,19 @@ export default function App() {
 
     const init = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        // Quick connectivity check: if Supabase URL is missing, fail fast
+        if (!import.meta.env.VITE_SUPABASE_URL) {
+          console.error('[WMS] VITE_SUPABASE_URL not set in environment');
+          return;
+        }
+
+        const sessionResult = await supabase.auth.getSession();
+        const session = sessionResult?.data?.session;
         if (session?.user) {
-          // loadProfile with its own 4s timeout
           await Promise.race([
             loadProfile(session.user.id),
             new Promise((_, reject) => setTimeout(() => reject(new Error('profile timeout')), 4000)),
-          ]).catch(e => console.warn('[WMS] loadProfile race:', e.message));
+          ]).catch(e => console.warn('[WMS] loadProfile:', e.message));
         }
       } catch (e) {
         console.warn('[WMS] getSession error:', e.message);
@@ -552,9 +558,20 @@ export default function App() {
   // Show nothing while auth is resolving (prevents flash of login page)
   if (!authReady) return (
     <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-      background: theme === 'light' ? '#f3f4f6' : '#0f1623', gap:16 }}>
-      <div style={{ width:32, height:32, border:'3px solid #e5e7eb', borderTopColor:'#3b82f6', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
-      <div style={{ fontSize:13, color:'#6b7280' }}>Loading...</div>
+      background:'#0f172a', gap:16, padding:24, fontFamily:'monospace' }}>
+      <div style={{ width:32, height:32, border:'3px solid #334155', borderTopColor:'#3b82f6', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
+      <div style={{ fontSize:13, color:'#94a3b8' }}>Connecting to Supabase...</div>
+      <div style={{ background:'#1e293b', borderRadius:8, padding:16, maxWidth:480, width:'100%', fontSize:11, color:'#64748b', lineHeight:2 }}>
+        <div><span style={{color:'#94a3b8'}}>URL:</span> {import.meta.env.VITE_SUPABASE_URL
+          ? <span style={{color:'#4ade80'}}>{import.meta.env.VITE_SUPABASE_URL.slice(0,40)}...</span>
+          : <span style={{color:'#f87171'}}>❌ VITE_SUPABASE_URL not set in Vercel</span>}</div>
+        <div><span style={{color:'#94a3b8'}}>KEY:</span> {import.meta.env.VITE_SUPABASE_ANON_KEY
+          ? <span style={{color:'#4ade80'}}>✓ set ({import.meta.env.VITE_SUPABASE_ANON_KEY.slice(0,12)}...)</span>
+          : <span style={{color:'#f87171'}}>❌ VITE_SUPABASE_ANON_KEY not set in Vercel</span>}</div>
+      </div>
+      <div style={{ fontSize:11, color:'#475569', textAlign:'center', maxWidth:420 }}>
+        If both show ❌, go to Vercel → Settings → Environment Variables and add them, then Redeploy.
+      </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
