@@ -237,7 +237,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
           </select>}
           <button className="btn btn-primary btn-sm" onClick={()=>openTx('receive')}>＋ {L('Goods Receipt','收貨入庫')}</button>
           <button className="btn btn-danger btn-sm" onClick={()=>openTx('issue')}>－ {L('Goods Issue','發貨領料')}</button>
-          {isAdmin&&<button className="btn btn-ghost btn-sm" onClick={openCreate}>+ {L('New Part','新增物料')}</button>}
+
         </div>
       </div>
 
@@ -324,7 +324,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
           <input placeholder={L('Search part / model / description...','搜尋料號、型號、品名...')} value={invSearch} onChange={e=>setInvSearch(e.target.value)} style={{flex:1,minWidth:180,maxWidth:280}}/>
           {['all','crit','low'].map(f=><button key={f} className={`btn btn-sm ${invFilter===f?'btn-primary':'btn-ghost'}`} onClick={()=>setInvFilter(f)}>{f==='all'?L('All','全部'):f==='crit'?L('Critical','缺料'):L('Low','低庫存')}</button>)}
           <div style={{marginLeft:'auto',display:'flex',gap:6}}>
-            <button className="btn btn-success btn-sm" onClick={()=>exportExcel('inventory')}>⬇ Excel</button>
+            <button className="btn btn-success btn-sm" onClick={()=>exportExcel()}>⬇ Excel</button>
             <button className="btn btn-ghost btn-sm" onClick={()=>fetchInventory(true)}>↻</button>
           </div>
         </div>
@@ -365,12 +365,12 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
         </div>
       </div>}
 
-      {/* MASTER */}
-      {tab==='master'&&isAdmin&&<div>
+      {/* MASTER tab moved to Admin → Settings → SP Master Data */}
+  {false&&isAdmin&&<div>
         <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',marginBottom:12}}>
           <input placeholder={L('Search...','搜尋...')} value={masterSearch} onChange={e=>setMasterSearch(e.target.value)} style={{flex:1,minWidth:180,maxWidth:280}}/>
           <div style={{marginLeft:'auto',display:'flex',gap:6}}>
-            <button className="btn btn-success btn-sm" onClick={()=>exportExcel('master')}>⬇ Excel</button>
+            <button className="btn btn-success btn-sm" onClick={()=>exportExcel()}>⬇ Excel</button>
             <button className="btn btn-ghost btn-sm" onClick={()=>fetchMaster(true)}>↻</button>
           </div>
         </div>
