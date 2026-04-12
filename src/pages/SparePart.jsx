@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { spareSupabase as supabase } from '../config/spareClient';
-import { Chart, ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
+import Chart from 'chart.js/auto';
 import * as XLSX from 'xlsx';
-
-Chart.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 const PAGE_SIZE = 50;
 const DEPARTMENTS = ['QC', 'Facility'];
