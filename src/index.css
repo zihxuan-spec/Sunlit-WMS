@@ -727,6 +727,27 @@ input::placeholder, textarea::placeholder { color: var(--dk-text-4); }
     background: var(--lt-bg);
     padding: 16px;
     flex: 1;
+    overflow-x: hidden;
+  }
+
+  /* Spare Part on iPad - ensure tables scroll horizontally */
+  .history-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Modal full-screen on small devices */
+  .modal-card {
+    max-width: 100% !important;
+    width: 100% !important;
+    border-radius: 16px 16px 0 0 !important;
+    max-height: 85vh !important;
+  }
+
+  /* SP sub-tabs scrollable on iPad */
+  .page-header {
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   /* Page header */
