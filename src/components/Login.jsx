@@ -20,7 +20,14 @@ export default function Login({ onLogin, lang, setLang, showAlert }) {
     setLoading(false);
 
     if (error || !data?.user) {
-      return showAlert(lang === 'zh' ? '帳號或密碼錯誤' : 'Invalid username or password');
+      const msg = error?.message || 'No user found';
+      if (msg.includes('Invalid login') || msg.includes('invalid') || msg.includes('credentials')) {
+        return showAlert(lang === 'zh' ? '帳號或密碼錯誤' : 'Invalid username or password');
+      }
+      if (msg.includes('Email not confirmed')) {
+        return showAlert(lang === 'zh' ? '帳號未確認，請至 Supabase Auth 勾選 Auto Confirm' : 'Email not confirmed. Enable Auto Confirm in Supabase Auth.');
+      }
+      return showAlert(`${lang === 'zh' ? '登入失敗' : 'Login failed'}: ${msg}`);
     }
     // Profile (name + role) is fetched in App.jsx via onAuthStateChange
   };
