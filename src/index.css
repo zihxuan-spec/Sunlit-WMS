@@ -837,3 +837,158 @@ html.light .kanban-item .badge-gray { background: #e5e7eb; color: #374151; }
 @media (max-width: 1024px) {
   .turnover-item-selected { background: #dbeafe !important; border-color: var(--lt-accent) !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   COMPREHENSIVE LIGHT MODE — html.light class
+   Covers ALL major UI elements so light mode works on desktop
+   ══════════════════════════════════════════════════════════ */
+
+html.light body {
+  background: var(--lt-bg);
+  color: var(--lt-text);
+}
+
+/* ── Shell & layout ── */
+html.light .app-shell { background: var(--lt-bg); }
+
+/* ── Topbar ── */
+html.light .topbar {
+  background: #fff;
+  border-bottom-color: var(--lt-border);
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+html.light .topbar-logo-name { color: var(--lt-text); }
+html.light .topbar-divider    { background: var(--lt-border); }
+html.light .topbar-env        { color: var(--lt-text-3); }
+html.light .topbar-user       { color: var(--lt-text); }
+html.light .topbar-right .btn-ghost {
+  color: var(--lt-text-2);
+  border-color: var(--lt-border2);
+}
+html.light .topbar-right .btn-ghost:hover { background: var(--lt-bg); }
+html.light .role-admin      { background: #fce7e7; color: #dc2626; }
+html.light .role-warehouse  { background: #fef3c7; color: #d97706; }
+html.light .role-prod       { background: #ede9fe; color: #7c3aed; }
+
+/* ── Sidebar ── */
+html.light .sidebar {
+  background: #fff;
+  border-right-color: var(--lt-border);
+}
+html.light .sidebar-section { color: var(--lt-text-3); }
+html.light .nav-item        { color: var(--lt-text-2); }
+html.light .nav-item:hover  { background: var(--lt-bg); color: var(--lt-text); }
+html.light .nav-item.active {
+  background: #e8f4ff;
+  color: var(--lt-accent);
+  border-left-color: var(--lt-accent);
+}
+html.light .sidebar-status  { color: var(--lt-text-3); }
+html.light .sidebar-footer  { border-top-color: var(--lt-border); }
+
+/* ── Page header ── */
+html.light .page-header { background: #fff; border-bottom-color: var(--lt-border); }
+html.light .page-title  { color: var(--lt-text); }
+html.light .page-subtitle { color: var(--lt-text-2); }
+
+/* ── Cards ── */
+html.light .card {
+  background: #fff;
+  border-color: var(--lt-border);
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+html.light .card-header  { border-bottom-color: var(--lt-border); }
+html.light .card-title   { color: var(--lt-text-2); }
+
+/* ── Metric cards ── */
+html.light .metric-card  { background: #fff; border-color: var(--lt-border); }
+html.light .metric-label { color: var(--lt-text-3); }
+html.light .metric-value { color: var(--lt-text); }
+html.light .metric-sub   { color: var(--lt-text-3); }
+
+/* ── Buttons ── */
+html.light .btn-ghost {
+  color: var(--lt-text-2);
+  border-color: var(--lt-border2);
+}
+html.light .btn-ghost:hover { background: var(--lt-bg); }
+html.light .btn-secondary   { background: var(--lt-border); color: var(--lt-text); }
+
+/* ── Inputs & selects ── */
+html.light input,
+html.light select,
+html.light textarea {
+  background: #fff;
+  color: var(--lt-text);
+  border-color: var(--lt-border2);
+}
+html.light input:focus,
+html.light select:focus { border-color: var(--lt-accent); }
+html.light input::placeholder { color: var(--lt-text-3); }
+
+/* ── Modals ── */
+html.light .modal-overlay { background: rgba(0,0,0,.35); }
+html.light .modal-card {
+  background: #fff;
+  border-color: var(--lt-border);
+  color: var(--lt-text);
+}
+html.light .modal-card h3 { color: var(--lt-text); }
+
+/* ── Tables ── */
+html.light .history-table th {
+  background: var(--lt-bg);
+  color: var(--lt-text-3);
+  border-bottom-color: var(--lt-border);
+}
+html.light .history-table td {
+  color: var(--lt-text-2);
+  border-bottom-color: var(--lt-border);
+}
+html.light .history-table tr:hover td { background: var(--lt-bg); }
+
+/* ── Dashboard stat cards ── */
+html.light .stat-card {
+  background: #fff;
+  border-color: var(--lt-border);
+}
+html.light .stat-card h3     { color: var(--lt-text-3); }
+html.light .stat-card .num   { color: var(--lt-text); }
+html.light .stat-card .num.blue  { color: var(--lt-accent); }
+html.light .stat-card .num.green { color: var(--lt-success); }
+html.light .stat-card .bar-bg    { background: var(--lt-border); }
+
+/* ── Badges ── */
+html.light .badge-gray   { background: #f3f4f6; color: #6b7280; }
+html.light .badge-blue   { background: #eff6ff; color: #2563eb; }
+html.light .badge-green  { background: #f0fdf4; color: #16a34a; }
+html.light .badge-amber  { background: #fffbeb; color: #d97706; }
+html.light .badge-red    { background: #fef2f2; color: #dc2626; }
+html.light .badge-purple { background: #faf5ff; color: #7c3aed; }
+
+/* ── Lists & rows ── */
+html.light .list-row { border-bottom-color: var(--lt-border); }
+html.light .list-row:hover { background: var(--lt-bg); }
+html.light .list-row.selected { background: #e8f4ff; }
+
+/* ── Pending items (Inbound/Outbound) ── */
+html.light .pending-item { background: #fff; border-color: var(--lt-border); color: var(--lt-text); }
+
+/* ── Kanban ── */
+html.light .kanban-item  { background: #fff; border-color: var(--lt-border); }
+html.light .kanban-batch { color: var(--lt-accent); }
+html.light .kanban-meta  { color: var(--lt-text-3); }
+html.light .kanban-zone-label { color: var(--lt-text-2); }
+
+/* ── Warehouse map ── */
+html.light .map-container { background: var(--lt-bg); }
+
+/* ── Status bar ── */
+html.light .realtime-indicator { color: var(--lt-text-3); }
+
+/* ── Main content area ── */
+html.light .main-content { background: var(--lt-bg); }
+
+/* ── Section headers in Dashboard ── */
+html.light .stat-card h3,
+html.light .section-label { color: var(--lt-text-3); }
