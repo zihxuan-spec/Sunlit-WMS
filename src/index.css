@@ -8,40 +8,47 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* Desktop dark palette */
-  --dk-bg:        #0f1117;
-  --dk-surface:   #161b27;
-  --dk-surface2:  #1a2236;
-  --dk-border:    #1e2535;
-  --dk-border2:   #2d3748;
-  --dk-text:      #e2e8f0;
-  --dk-text-2:    #94a3b8;
-  --dk-text-3:    #64748b;
-  --dk-text-4:    #4a5568;
-  --dk-accent:    #3b82f6;
-  --dk-accent-bg: #1e3a5f;
-  --dk-success:   #10b981;
-  --dk-success-bg:#1c2d1c;
-  --dk-warn:      #f59e0b;
-  --dk-warn-bg:   #2d1e0a;
-  --dk-danger:    #ef4444;
-  --dk-danger-bg: #2d1515;
-  --dk-purple:    #8b5cf6;
-  --dk-purple-bg: #1e1a3d;
-
-  /* iPad light palette */
+  /* ── Single light palette — both lt-* and dk-* point to light values ── */
+  /* lt-* = canonical light tokens */
   --lt-bg:        #f2f2f7;
   --lt-surface:   #ffffff;
   --lt-border:    #e5e7eb;
   --lt-border2:   #d1d5db;
   --lt-text:      #111827;
   --lt-text-2:    #6b7280;
-  --lt-text-3:    #6b7280;
-  --lt-accent:    #007aff;
-  --lt-success:   #34c759;
-  --lt-warn:      #ff9500;
-  --lt-danger:    #ff3b30;
-  --lt-purple:    #5856d6;
+  --lt-text-3:    #9ca3af;
+  --lt-text-4:    #d1d5db;
+  --lt-accent:    #2563eb;
+  --lt-accent-bg: #eff6ff;
+  --lt-success:   #16a34a;
+  --lt-success-bg:#f0fdf4;
+  --lt-warn:      #d97706;
+  --lt-warn-bg:   #fffbeb;
+  --lt-danger:    #dc2626;
+  --lt-danger-bg: #fef2f2;
+  --lt-purple:    #7c3aed;
+  --lt-purple-bg: #faf5ff;
+
+  /* dk-* aliases → light values so existing pages need no changes */
+  --dk-bg:        var(--lt-bg);
+  --dk-surface:   var(--lt-surface);
+  --dk-surface2:  #f9fafb;
+  --dk-border:    var(--lt-border);
+  --dk-border2:   var(--lt-border2);
+  --dk-text:      var(--lt-text);
+  --dk-text-2:    var(--lt-text-2);
+  --dk-text-3:    var(--lt-text-3);
+  --dk-text-4:    var(--lt-text-4);
+  --dk-accent:    var(--lt-accent);
+  --dk-accent-bg: var(--lt-accent-bg);
+  --dk-success:   var(--lt-success);
+  --dk-success-bg:var(--lt-success-bg);
+  --dk-warn:      var(--lt-warn);
+  --dk-warn-bg:   var(--lt-warn-bg);
+  --dk-danger:    var(--lt-danger);
+  --dk-danger-bg: var(--lt-danger-bg);
+  --dk-purple:    var(--lt-purple);
+  --dk-purple-bg: var(--lt-purple-bg);
 
   /* Shared sizes */
   --radius-sm:  4px;
@@ -51,14 +58,24 @@
   --sidebar-w:  220px;
   --topbar-h:   48px;
   --tabbar-h:   72px;
+
+  /* Semantic aliases used by some pages */
+  --border:           var(--lt-border);
+  --text-secondary:   var(--lt-text-2);
+  /* Already in :root */
+  --bg-section:       var(--lt-bg);
+  --bg-section-warm:  #fef3c7;
+  --bg-section-blue:  #dbeafe;
+  --bg-section-green: #d1fae5;
+  --bg-section-purple:#ede9fe;
 }
 
 html, body { height: 100%; }
 
 body {
   font-family: -apple-system, 'Inter', 'Helvetica Neue', Arial, sans-serif;
-  background: var(--dk-bg);
-  color: var(--dk-text);
+  background: var(--lt-bg);
+  color: var(--lt-text);
   -webkit-font-smoothing: antialiased;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -140,7 +157,7 @@ body {
   font-weight: 600;
 }
 .role-admin    { background: #1e3a5f; color: #60a5fa; }
-.role-warehouse{ background: #1e2535; color: #94a3b8; }
+.role-warehouse{ background: #fef3c7; color: #d97706; }
 .role-prod     { background: var(--dk-purple-bg); color: #a78bfa; }
 
 /* ── Sidebar ── */
@@ -209,7 +226,7 @@ body {
 
 /* ── Main content area ── */
 .main-content {
-  background: var(--dk-bg);
+  background: var(--lt-bg);
   padding: 24px;
   overflow-y: auto;
   min-height: 0;
@@ -562,7 +579,7 @@ input::placeholder, textarea::placeholder { color: var(--dk-text-4); }
 .shelf h2 { margin: 0 0 2px; font-size: var(--dyn-font-h2, 11px); color: inherit; font-weight: 600; word-break: break-all; }
 .shelf p  { margin: 0; font-size: var(--dyn-font-p, 10px); font-weight: 600; word-break: break-word; }
 .shelf .date-tag { font-size: 9px; background: rgba(255,255,255,.1); padding: 1px 4px; border-radius: 2px; margin-top: 2px; }
-.shelf-empty { background: #1a2236; color: #4a5568; } /* dark default */
+.shelf-empty { background: #e2e8f0; color: #6b7280; }
 .shelf-occupied { background: #14391f; color: #4ade80; border-color: #16a34a44; }
 
 /* Shelf animations */
@@ -639,7 +656,7 @@ input::placeholder, textarea::placeholder { color: var(--dk-text-4); }
 .login-container {
   min-height: 100vh;
   display: flex; align-items: center; justify-content: center;
-  background: var(--dk-bg);
+  background: var(--lt-bg);
   padding: 24px;
 }
 .login-card {
@@ -658,7 +675,7 @@ input::placeholder, textarea::placeholder { color: var(--dk-text-4); }
 .pin-display {
   font-size: 26px; letter-spacing: 10px;
   text-align: center; padding: 14px;
-  background: var(--dk-bg); border: 1px solid var(--dk-border2);
+  background: var(--lt-bg); border: 1px solid var(--lt-border2);
   border-radius: var(--radius-md);
   margin-bottom: 14px; min-height: 58px;
   color: var(--dk-text);
@@ -691,11 +708,7 @@ input::placeholder, textarea::placeholder { color: var(--dk-text-4); }
    ════════════════════════════════════════════════════════════ */
 @media (max-width: 1024px) {
 
-  /* ── Force light mode on mobile — ignore localStorage dark setting ── */
-  body {
-    background: var(--lt-bg) !important;
-    color: var(--lt-text) !important;
-  }
+  /* body already light — no override needed */
 
   /* ── Hide desktop elements ── */
   .topbar  { display: none !important; }
@@ -822,35 +835,11 @@ input::placeholder, textarea::placeholder { color: var(--dk-text-4); }
   input, select { background: var(--lt-surface) !important; color: var(--lt-text) !important; border-color: var(--lt-border) !important; }
 
   /* ── Variable aliases for light mode ── */
-  :root {
-    --bg-card:          var(--lt-surface);
-    --bg-section:       var(--lt-bg);
-    --bg-section-warm:  #fef3c7;
-    --bg-section-blue:  #dbeafe;
-    --bg-section-green: #d1fae5;
-    --bg-section-purple:#ede9fe;
-    --border:           var(--lt-border);
-    --text-secondary:   var(--lt-text-2);
-    --text-muted:       var(--lt-text-3);
-    --success:          var(--lt-success);
-    --danger:           var(--lt-danger);
-  }
+  /* Variables now set globally in :root */
 }
 
 @media (max-width: 1024px) {
-  :root {
-    --bg-card:          var(--lt-surface);
-    --bg-section:       var(--lt-bg);
-    --bg-section-warm:  #fef3c7;
-    --bg-section-blue:  #dbeafe;
-    --bg-section-green: #d1fae5;
-    --bg-section-purple:#ede9fe;
-    --border:           var(--lt-border);
-    --text-secondary:   var(--lt-text-2);
-    --text-muted:       var(--lt-text-3);
-    --success:          var(--lt-success);
-    --danger:           var(--lt-danger);
-  }
+  /* Variables now set globally in :root */
   /* stat-card light version */
   .stat-card {
     background: var(--lt-surface);
