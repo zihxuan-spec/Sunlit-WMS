@@ -23,16 +23,24 @@ export default function App() {
     document.documentElement.classList.toggle('light', theme === 'light');
     localStorage.setItem('wms_theme', theme);
   }, [theme]);
-  // ── Supabase Auth: listen for sign-in/sign-out ───────────
+
+  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
+
+  // ── Auth state (declared BEFORE auth useEffect) ───────────
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userRole, setUserRole] = useState('Warehouse');
+  const [authReady, setAuthReady] = useState(false);
+
+  const loadProfile = async (uid) => {
+    const { data } = await supabase.from('profiles').select('name, role').eq('id', uid).single();
+    if (data) { setCurrentUser(data.name); setUserRole(data.role || 'Warehouse'); }
+  };
+
   useEffect(() => {
-    // Restore existing session on page load
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        await loadProfile(session.user.id);
-      }
+      if (session?.user) await loadProfile(session.user.id);
       setAuthReady(true);
     });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         await loadProfile(session.user.id);
@@ -47,17 +55,7 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const loadProfile = async (uid) => {
-    const { data } = await supabase.from('profiles').select('name, role').eq('id', uid).single();
-    if (data) { setCurrentUser(data.name); setUserRole(data.role || 'Warehouse'); }
-  };
-
-  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
-
   const t = dict[lang];
-  const [currentUser, setCurrentUser] = useState(null);   // display name from profile
-  const [userRole, setUserRole] = useState('Warehouse');
-  const [authReady, setAuthReady] = useState(false);       // true once auth state resolved
   const [currentView, setCurrentView] = useState('dashboard');
 
   const [modal, setModal] = useState({ isOpen: false, type: 'alert', title: '', msg: '', onConfirm: null, onAltConfirm: null, btnConfirm: '', btnAlt: '', btnCancel: '' });
