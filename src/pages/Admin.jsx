@@ -379,13 +379,11 @@ function CustomersTab({ lang, L, showAlert, showConfirm }) {
 // Tab 3: Employees
 // ════════════════════════════════════════════════════════════
 function EmployeesTab({ lang, L, showAlert, showConfirm, currentUser }) {
-  const { data, loading, refetch } = useTable('employees', q => q.order('name'));
+  const { data, loading, refetch } = useTable('employees', q => q.select('id, name, role').order('name'));
   const [newEmp, setNewEmp] = useState({ name:'', role:'Warehouse', pin:'' });
   const [editId, setEditId] = useState(null);
   const [editEmp, setEditEmp] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [showPin, setShowPin] = useState({});
-
   const roles = ['Admin','Warehouse','Production'];
 
   const add = async () => {
@@ -445,13 +443,7 @@ function EmployeesTab({ lang, L, showAlert, showConfirm, currentUser }) {
               <div style={{ display:'flex', alignItems:'center', gap:12 }}>
                 <span style={{ fontSize:14, fontWeight:600, color:'var(--dk-text)', flex:1 }}>{e.name}</span>
                 <span style={{ fontSize:11, fontWeight:700, padding:'2px 9px', borderRadius:4, background:`${roleColor(e.role)}22`, color:roleColor(e.role) }}>{e.role}</span>
-                <span style={{ fontSize:12, color:'var(--dk-text-3)', fontFamily:'monospace' }}>
-                  {showPin[e.id] ? (e.pin||'—') : '••••••'}
-                </span>
-                <button style={{ fontSize:11, color:'var(--dk-text-3)', background:'none', border:'none', cursor:'pointer', padding:'2px 4px' }}
-                  onClick={()=>setShowPin(v=>({...v,[e.id]:!v[e.id]}))}>
-                  {showPin[e.id]?L('Hide','隱藏'):L('Show','顯示')}
-                </button>
+                <span style={{ fontSize:11, color:'var(--dk-text-4)', fontFamily:'monospace' }}>••••••</span>
                 <button className="btn btn-ghost btn-sm" onClick={()=>{ setEditId(e.id); setEditEmp({...e}); }}>{L('Edit','編輯')}</button>
                 <button className="btn btn-ghost btn-sm" style={{ color:'var(--dk-danger)' }} onClick={()=>del(e)}>{L('Delete','刪除')}</button>
               </div>
