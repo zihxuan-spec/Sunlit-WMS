@@ -461,6 +461,7 @@ export default function App() {
 
   const handleLogout = async () => {
     setCurrentUser(null);
+    setCurrentView('dashboard');  // always reset to dashboard on logout
     sessionStorage.removeItem('wms_user');
     sessionStorage.removeItem('wms_role');
     setPendingItemsState([]); setOutboundAssignItemsState([]);
