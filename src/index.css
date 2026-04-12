@@ -8,8 +8,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* ── Single light palette — both lt-* and dk-* point to light values ── */
-  /* lt-* = canonical light tokens */
+  /* === LIGHT MODE — single palette, dk-* aliases point to light values === */
   --lt-bg:        #f2f2f7;
   --lt-surface:   #ffffff;
   --lt-border:    #e5e7eb;
@@ -29,7 +28,7 @@
   --lt-purple:    #7c3aed;
   --lt-purple-bg: #faf5ff;
 
-  /* dk-* aliases → light values so existing pages need no changes */
+  /* dk-* = same as lt-* so all pages work without changes */
   --dk-bg:        var(--lt-bg);
   --dk-surface:   var(--lt-surface);
   --dk-surface2:  #f9fafb;
@@ -50,7 +49,20 @@
   --dk-purple:    var(--lt-purple);
   --dk-purple-bg: var(--lt-purple-bg);
 
-  /* Shared sizes */
+  /* Semantic aliases */
+  --border:           var(--lt-border);
+  --text-secondary:   var(--lt-text-2);
+  --text-muted:       var(--lt-text-3);
+  --success:          var(--lt-success);
+  --danger:           var(--lt-danger);
+  --bg-card:          var(--lt-surface);
+  --bg-section:       var(--lt-bg);
+  --bg-section-warm:  #fef3c7;
+  --bg-section-blue:  #dbeafe;
+  --bg-section-green: #d1fae5;
+  --bg-section-purple:#ede9fe;
+
+  /* Layout */
   --radius-sm:  4px;
   --radius-md:  8px;
   --radius-lg:  12px;
@@ -58,16 +70,6 @@
   --sidebar-w:  220px;
   --topbar-h:   48px;
   --tabbar-h:   72px;
-
-  /* Semantic aliases used by some pages */
-  --border:           var(--lt-border);
-  --text-secondary:   var(--lt-text-2);
-  /* Already in :root */
-  --bg-section:       var(--lt-bg);
-  --bg-section-warm:  #fef3c7;
-  --bg-section-blue:  #dbeafe;
-  --bg-section-green: #d1fae5;
-  --bg-section-purple:#ede9fe;
 }
 
 html, body { height: 100%; }
@@ -96,8 +98,8 @@ body {
 /* ── Topbar ── */
 .topbar {
   grid-column: 1 / -1;
-  background: var(--dk-surface);
-  border-bottom: 1px solid var(--dk-border);
+  background: var(--lt-surface);
+  border-bottom: 1px solid var(--lt-border);
   display: flex;
   align-items: center;
   padding: 0 20px;
@@ -578,9 +580,9 @@ input::placeholder, textarea::placeholder { color: var(--dk-text-4); }
 .shelf:hover { filter: brightness(1.2); }
 .shelf h2 { margin: 0 0 2px; font-size: var(--dyn-font-h2, 11px); color: inherit; font-weight: 600; word-break: break-all; }
 .shelf p  { margin: 0; font-size: var(--dyn-font-p, 10px); font-weight: 600; word-break: break-word; }
-.shelf .date-tag { font-size: 9px; background: rgba(255,255,255,.1); padding: 1px 4px; border-radius: 2px; margin-top: 2px; }
+.shelf .date-tag { font-size: 9px; background: rgba(0,0,0,.06); padding: 1px 4px; border-radius: 2px; margin-top: 2px; }
 .shelf-empty { background: #e2e8f0; color: #6b7280; }
-.shelf-occupied { background: #14391f; color: #4ade80; border-color: #16a34a44; }
+.shelf-occupied { background: #dcfce7; color: #15803d; border-color: #86efac; }
 
 /* Shelf animations */
 @keyframes flashBlue { 0%,100%{ box-shadow: 0 0 0 transparent; } 50%{ box-shadow: 0 0 10px var(--dk-accent); } }
