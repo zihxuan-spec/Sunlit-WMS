@@ -63,10 +63,30 @@ export default function App() {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) await loadProfile(session.user.id);
-      setAuthReady(true);  // Always call this, even if loadProfile fails
-    }).catch(() => setAuthReady(true));  // Even on unexpected error, unblock UI
+    // Hard timeout: if auth takes >6s for any reason, unblock the UI
+    const timeout = setTimeout(() => {
+      console.warn('[WMS] Auth timeout — forcing authReady');
+      setAuthReady(true);
+    }, 6000);
+
+    const init = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          // loadProfile with its own 4s timeout
+          await Promise.race([
+            loadProfile(session.user.id),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('profile timeout')), 4000)),
+          ]).catch(e => console.warn('[WMS] loadProfile race:', e.message));
+        }
+      } catch (e) {
+        console.warn('[WMS] getSession error:', e.message);
+      } finally {
+        clearTimeout(timeout);
+        setAuthReady(true);
+      }
+    };
+    init();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         await loadProfile(session.user.id);
@@ -531,9 +551,11 @@ export default function App() {
 
   // Show nothing while auth is resolving (prevents flash of login page)
   if (!authReady) return (
-    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
-      background: theme === 'light' ? '#f3f4f6' : '#0f1623' }}>
+    <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+      background: theme === 'light' ? '#f3f4f6' : '#0f1623', gap:16 }}>
+      <div style={{ width:32, height:32, border:'3px solid #e5e7eb', borderTopColor:'#3b82f6', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
       <div style={{ fontSize:13, color:'#6b7280' }}>Loading...</div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 
