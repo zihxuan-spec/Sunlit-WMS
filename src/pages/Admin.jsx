@@ -18,9 +18,9 @@ const useTable = (table, query = (q) => q) => {
 const TABS = [
   { key: 'containers', label: { en: 'Container Types', zh: '包材類型' }, icon: '▦' },
   { key: 'customers',  label: { en: 'Customers',       zh: '客戶'     }, icon: '◉' },
-
   { key: 'guns',       label: { en: 'Gun Stations',    zh: '槍號設定' }, icon: '⊕' },
   { key: 'shelves',    label: { en: 'Shelf Layout',    zh: '貨架設定' }, icon: '⊞' },
+  { key: 'spmaster',   label: { en: 'SP Master Data',  zh: '備品主檔' }, icon: '◈' },
 ];
 
 export default function Admin({ lang, showAlert, showConfirm, currentUser }) {
@@ -58,6 +58,7 @@ export default function Admin({ lang, showAlert, showConfirm, currentUser }) {
 
       {tab === 'guns'       && <GunsTab       lang={lang} L={L} showAlert={showAlert} showConfirm={showConfirm} />}
       {tab === 'shelves'    && <ShelvesTab    lang={lang} L={L} showAlert={showAlert} showConfirm={showConfirm} />}
+      {tab === 'spmaster'   && <SpMasterTab   lang={lang} L={L} showAlert={showAlert} showConfirm={showConfirm} />}
     </div>
   );
 }
@@ -743,6 +744,180 @@ function ShelvesTab({ lang, L, showAlert, showConfirm }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════
+// SP Master Data Tab
+// ════════════════════════════════════════════════════════════
+function SpMasterTab({ lang, L, showAlert, showConfirm }) {
+  const [master, setMaster] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filterDept, setFilterDept] = useState('All');
+  const [modal, setModal] = useState(null); // null | 'create' | item
+  const [form, setForm] = useState({ part_number:'', model:'', description:'', unit:'PCS', safety_stock:'0', department:'' });
+  const [fb, setFb] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => { fetchMaster(); }, [search, filterDept]);
+
+  const fetchMaster = async () => {
+    setLoading(true);
+    let q = supabase.from('sp_master').select('*', { count: 'exact' }).eq('active', true).order('part_number');
+    if (filterDept !== 'All') q = q.eq('department', filterDept);
+    if (search) q = q.or(`part_number.ilike.%${search}%,model.ilike.%${search}%,description.ilike.%${search}%`);
+    const { data } = await q;
+    setMaster(data || []);
+    setLoading(false);
+  };
+
+  const openCreate = () => { setForm({ part_number:'', model:'', description:'', unit:'PCS', safety_stock:'0', department:'' }); setFb(''); setModal('create'); };
+  const openEdit = (item) => { setForm({ part_number:item.part_number, model:item.model||'', description:item.description||'', unit:item.unit||'PCS', safety_stock:String(item.safety_stock||0), department:item.department }); setFb(''); setModal(item); };
+
+  const checkPn = async (pn) => {
+    if (!pn || modal !== 'create') { setFb(''); return; }
+    const { data } = await supabase.from('sp_master').select('part_number').eq('part_number', pn).maybeSingle();
+    setFb(data ? L('⚠ Already exists','⚠ 料號已存在') : L('✓ Available','✓ 可用'));
+  };
+
+  const submit = async () => {
+    const { part_number, model, description, unit, safety_stock, department } = form;
+    if (!part_number.trim()) { showAlert(L('Part number required','料號為必填')); return; }
+    if (!department) { showAlert(L('Select department','請選擇部門')); return; }
+    setSubmitting(true);
+    const payload = { model, description, unit, safety_stock: parseInt(safety_stock)||0, department };
+    const { error } = modal === 'create'
+      ? await supabase.from('sp_master').insert({ part_number: part_number.trim(), ...payload })
+      : await supabase.from('sp_master').update(payload).eq('part_number', part_number);
+    setSubmitting(false);
+    if (error) { showAlert(error.message); return; }
+    setModal(null); fetchMaster();
+  };
+
+  const del = (item) => showConfirm(
+    L(`Delete "${item.part_number}"?`, `確定刪除「${item.part_number}」？`),
+    async () => {
+      const { data: chk } = await supabase.from('sp_inventory').select('stock').eq('part_number', item.part_number).maybeSingle();
+      if (chk?.stock > 0) { showAlert(L(`Cannot delete — has stock (${chk.stock})`,`尚有庫存 (${chk.stock})，無法刪除`)); return; }
+      await supabase.from('sp_master').update({ active: false }).eq('part_number', item.part_number);
+      fetchMaster();
+    }
+  );
+
+  const inp = { margin:0, fontSize:13 };
+  const lbl = { fontSize:11, fontWeight:600, color:'var(--dk-text-3)', display:'block', marginBottom:4 };
+
+  return (
+    <div>
+      {/* Toolbar */}
+      <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap', marginBottom:14 }}>
+        <input placeholder={L('Search part / model...','搜尋料號、型號...')} value={search}
+          onChange={e => setSearch(e.target.value)} style={{ width:220, ...inp }} />
+        <select value={filterDept} onChange={e => setFilterDept(e.target.value)} style={{ ...inp, margin:0 }}>
+          <option value="All">{L('All Depts','全部')}</option>
+          <option value="QC">QC</option>
+          <option value="Facility">Facility</option>
+        </select>
+        <button className="btn btn-primary btn-sm" onClick={openCreate} style={{ marginLeft:'auto' }}>
+          + {L('New Part','新增物料')}
+        </button>
+      </div>
+
+      {/* Table */}
+      <div className="card" style={{ padding:0, overflow:'hidden' }}>
+        {loading ? (
+          <div style={{ padding:32, textAlign:'center', fontSize:13, color:'var(--dk-text-3)' }}>{L('Loading...','載入中...')}</div>
+        ) : (
+          <div className="history-table-container" style={{ maxHeight:'none' }}>
+            <table className="history-table" style={{ minWidth:600 }}>
+              <thead><tr>
+                <th>{L('Part Number','料號')}</th>
+                <th>{L('Model','型號')}</th>
+                <th>{L('Description','品名描述')}</th>
+                <th style={{ textAlign:'center' }}>{L('Unit','單位')}</th>
+                <th style={{ textAlign:'center' }}>{L('Safety Stock','安全庫存')}</th>
+                <th>{L('Dept','部門')}</th>
+                <th></th>
+              </tr></thead>
+              <tbody>
+                {master.map(item => (
+                  <tr key={item.part_number}
+                    onMouseEnter={e => e.currentTarget.style.background='var(--dk-surface2)'}
+                    onMouseLeave={e => e.currentTarget.style.background=''}>
+                    <td style={{ fontFamily:'monospace', fontWeight:700, color:'var(--dk-accent)' }}>{item.part_number}</td>
+                    <td>{item.model}</td>
+                    <td style={{ color:'var(--dk-text-3)', maxWidth:200, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.description}</td>
+                    <td style={{ textAlign:'center' }}>{item.unit}</td>
+                    <td style={{ textAlign:'center' }}>{item.safety_stock}</td>
+                    <td>
+                      <span className={`badge ${item.department==='QC'?'badge-blue':'badge-purple'}`}>{item.department}</span>
+                    </td>
+                    <td>
+                      <div style={{ display:'flex', gap:6 }}>
+                        <button className="btn btn-ghost btn-sm" onClick={() => openEdit(item)}>{L('Edit','編輯')}</button>
+                        <button className="btn btn-ghost btn-sm" style={{ color:'var(--dk-danger)' }} onClick={() => del(item)}>✕</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {!master.length && (
+                  <tr><td colSpan={7} style={{ textAlign:'center', padding:28, color:'var(--dk-text-3)' }}>
+                    {L('No data','無資料')}
+                  </td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Create / Edit Modal */}
+      {modal && (
+        <div className="modal-overlay">
+          <div className="modal-card" style={{ maxWidth:460, width:'95%' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+              <h3 style={{ margin:0 }}>{modal === 'create' ? L('New Material','新增備品物料') : L('Edit Material','編輯備品物料')}</h3>
+              <button className="btn btn-ghost btn-sm" onClick={() => setModal(null)}>✕</button>
+            </div>
+            <div style={{ display:'grid', gap:12 }}>
+              {[
+                ['part_number', L('Part Number *','料號 *'), 'text', modal !== 'create'],
+                ['model',       L('Model','型號'),          'text', false],
+                ['description', L('Description','品名描述'), 'text', false],
+                ['unit',        L('Unit','單位'),            'text', false],
+                ['safety_stock',L('Safety Stock','安全庫存'),'number', false],
+              ].map(([key, label, type, ro]) => (
+                <div key={key}>
+                  <label style={lbl}>{label}</label>
+                  <input type={type} value={form[key]} readOnly={ro}
+                    style={{ ...inp, width:'100%', boxSizing:'border-box', ...(ro?{background:'var(--dk-surface2)',color:'var(--dk-text-3)'}:{}) }}
+                    onChange={e => { setForm(f=>({...f,[key]:e.target.value})); if(key==='part_number') checkPn(e.target.value); }} />
+                  {key==='part_number' && fb && (
+                    <span style={{ fontSize:11, color: fb.includes('✓')?'#10b981':'#ef4444' }}>{fb}</span>
+                  )}
+                </div>
+              ))}
+              <div>
+                <label style={lbl}>{L('Department *','部門 *')}</label>
+                <select value={form.department} onChange={e => setForm(f=>({...f,department:e.target.value}))}
+                  style={{ ...inp, margin:0, width:'100%', boxSizing:'border-box' }}>
+                  <option value="">{L('Select...','選擇...')}</option>
+                  <option value="QC">QC</option>
+                  <option value="Facility">Facility</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:16 }}>
+              <button className="btn btn-ghost" onClick={() => setModal(null)}>{L('Cancel','取消')}</button>
+              <button className="btn btn-primary" disabled={submitting} onClick={submit}>
+                {submitting ? '...' : modal==='create' ? L('Create','建立') : L('Save','儲存')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
