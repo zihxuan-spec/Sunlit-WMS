@@ -159,7 +159,7 @@ function ContainersTab({ lang, L, showAlert, showConfirm }) {
           : cts.map(ct => (
             <div key={ct.id} onClick={()=>{ setSelectedCT(ct); setEditCT(null); }}
               style={{ padding:'10px 14px', cursor:'pointer', borderBottom:'1px solid var(--border)', opacity:ct.active?1:.45,
-                background: selectedCT?.id===ct.id ? (document.documentElement.classList.contains('light')?'#eff6ff':'var(--dk-accent-bg)') : 'transparent' }}>
+                background: selectedCT?.id===ct.id ? '#eff6ff' : 'transparent' }}>
               <div style={{ display:'flex', alignItems:'center', gap:5 }}>
                 <span style={{ fontFamily:'monospace', fontSize:12, fontWeight:700, color: selectedCT?.id===ct.id?'var(--dk-accent)':'var(--dk-text)' }}>{ct.code}</span>
                 {ct.is_pallet && <span className="badge badge-amber" style={{ fontSize:9 }}>PALLET</span>}
