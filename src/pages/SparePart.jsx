@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { spareSupabase as supabase } from '../config/spareClient';
 import Chart from 'chart.js/auto';
-import * as XLSX from 'xlsx';
 
 const PAGE_SIZE = 50;
 const DEPARTMENTS = ['QC', 'Facility'];
@@ -203,11 +202,16 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
   });
 
   const exportExcel=async(type)=>{
-    const{data}=await applyDept(supabase.from(type==='inventory'?'view_sp_inventory':'sp_master').select('*'));
+    const tbl=type==='inventory'?'view_sp_inventory':'sp_master';
+    const{data}=await applyDept(supabase.from(tbl).select('*'));
     if(!data?.length) return;
-    const ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb,ws,'Sheet1');
-    XLSX.writeFile(wb,`SP_${type}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    const headers=Object.keys(data[0]);
+    const rows=[headers,...data.map(r=>headers.map(h=>JSON.stringify(r[h]??'')))];
+    const csv='\uFEFF'+rows.map(r=>r.join(',')).join('\n');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+    a.download=`SP_${type}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
   };
 
   const sortToggle=(col)=>{setSortCol(col);setSortAsc(sortCol===col?!sortAsc:true);};
