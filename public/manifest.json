@@ -1,0 +1,12 @@
+{
+  "name": "Sunlit WMS",
+  "short_name": "Sunlit WMS",
+  "description": "Warehouse Management System",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1623",
+  "theme_color": "#2563eb",
+  "icons": [
+    { "src": "/icon.png", "sizes": "192x192", "type": "image/png" }
+  ]
+}
