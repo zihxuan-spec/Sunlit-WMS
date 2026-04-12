@@ -245,7 +245,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
 
       {/* Sub-tabs */}
       <div style={{display:'flex',gap:0,borderBottom:'1px solid var(--border)',marginBottom:16}}>
-        {[['dashboard',L('Dashboard','看板')],['inventory',L('Inventory','庫存')],...(isAdmin?[['master',L('Master Data','物料主檔')]]:[])]
+        {[['dashboard',L('Dashboard','看板')],['inventory',L('Inventory','庫存')]]
           .map(([key,label])=>(
             <button key={key} onClick={()=>setTab(key)} style={{padding:'10px 18px',fontSize:13,fontWeight:500,border:'none',background:'transparent',cursor:'pointer',color:tab===key?'var(--dk-accent)':'var(--dk-text-3)',borderBottom:`2px solid ${tab===key?'var(--dk-accent)':'transparent'}`,marginBottom:-1,transition:'color .15s'}}>
               {label}
