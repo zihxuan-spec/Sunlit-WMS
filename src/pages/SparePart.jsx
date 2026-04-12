@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { spareSupabase as supabase } from '../config/spareClient';
+import { Chart, ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
+import * as XLSX from 'xlsx';
+
+Chart.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 const PAGE_SIZE = 50;
 const DEPARTMENTS = ['QC', 'Facility'];
@@ -93,12 +97,12 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
     setDeadStock(Object.values(invMap).filter(i=>i.stock>0&&!moveCount[i.part_number]).sort((a,b)=>b.stock-a.stock).slice(0,8));
     const textColor = getComputedStyle(document.documentElement).getPropertyValue('--dk-text-3').trim()||'#64748b';
     setTimeout(()=>{
-      if(!window.Chart) return;
+      
       if(healthInst.current) healthInst.current.destroy();
       if(trendInst.current) trendInst.current.destroy();
       const safe=(inv||[]).filter(i=>!i.is_critical&&!i.is_low&&i.stock>0).length;
-      if(healthRef.current) healthInst.current=new window.Chart(healthRef.current,{type:'doughnut',data:{labels:[L('Critical','缺料'),L('Low','低庫存'),L('Safe','安全')],datasets:[{data:[crit,low,safe],backgroundColor:['#ef4444','#f59e0b','#10b981'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{position:'right',labels:{color:textColor,boxWidth:12,font:{size:11}}}}}});
-      if(trendRef.current) trendInst.current=new window.Chart(trendRef.current,{type:'bar',data:{labels:Object.keys(trend).map(d=>d.slice(5)),datasets:[{label:L('In','入庫'),data:Object.values(trend).map(v=>v.in),backgroundColor:'#10b981',borderRadius:3},{label:L('Out','出庫'),data:Object.values(trend).map(v=>v.out),backgroundColor:'#3b82f6',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:textColor,boxWidth:12,font:{size:11}}}},scales:{x:{grid:{display:false},ticks:{color:textColor}},y:{ticks:{precision:0,color:textColor},grid:{color:'rgba(100,116,139,.2)'}}}}});
+      if(healthRef.current) healthInst.current=new Chart(healthRef.current,{type:'doughnut',data:{labels:[L('Critical','缺料'),L('Low','低庫存'),L('Safe','安全')],datasets:[{data:[crit,low,safe],backgroundColor:['#ef4444','#f59e0b','#10b981'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{position:'right',labels:{color:textColor,boxWidth:12,font:{size:11}}}}}});
+      if(trendRef.current) trendInst.current=new Chart(trendRef.current,{type:'bar',data:{labels:Object.keys(trend).map(d=>d.slice(5)),datasets:[{label:L('In','入庫'),data:Object.values(trend).map(v=>v.in),backgroundColor:'#10b981',borderRadius:3},{label:L('Out','出庫'),data:Object.values(trend).map(v=>v.out),backgroundColor:'#3b82f6',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:textColor,boxWidth:12,font:{size:11}}}},scales:{x:{grid:{display:false},ticks:{color:textColor}},y:{ticks:{precision:0,color:textColor},grid:{color:'rgba(100,116,139,.2)'}}}}});
     },100);
   }, [dept, lang]);
 
@@ -201,12 +205,11 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
   });
 
   const exportExcel=async(type)=>{
-    if(!window.XLSX) return;
     const{data}=await applyDept(supabase.from(type==='inventory'?'view_sp_inventory':'sp_master').select('*'));
     if(!data?.length) return;
-    const ws=window.XLSX.utils.json_to_sheet(data),wb=window.XLSX.utils.book_new();
-    window.XLSX.utils.book_append_sheet(wb,ws,'Sheet1');
-    window.XLSX.writeFile(wb,`SP_${type}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    const ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Sheet1');
+    XLSX.writeFile(wb,`SP_${type}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const sortToggle=(col)=>{setSortCol(col);setSortAsc(sortCol===col?!sortAsc:true);};
