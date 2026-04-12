@@ -19,144 +19,35 @@ import SparePart from './pages/SparePart';
 
 export default function App() {
   const [lang, setLang] = useState('en');
-  // Dark mode removed — always light
-  const theme = 'light';
-  useEffect(() => {
-    document.documentElement.classList.add('light');
-    localStorage.setItem('wms_theme', 'light');
-  }, []);
-
-  // ── Auth state (declared BEFORE auth useEffect) ───────────
   const [currentUser, setCurrentUser] = useState(null);
   const [userRole, setUserRole] = useState('Warehouse');
   const [authReady, setAuthReady] = useState(false);
-
-  const loadProfile = async (uid) => {
-    try {
-      // Try profiles table first (new Supabase Auth system)
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('name, role')
-        .eq('id', uid)
-        .single();
-      if (data) {
-        setCurrentUser(data.name);
-        setUserRole(data.role || 'Warehouse');
-        return;
-      }
-      // If error (e.g. table doesn't exist or no row), log for debugging
-      if (error) console.warn('[WMS] profiles lookup failed:', error.message);
-    } catch (e) {
-      console.warn('[WMS] profiles error:', e.message);
-    }
-    // Fallback: get display name from Auth user metadata
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const name = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
-      const role = user?.user_metadata?.role || 'Warehouse';
-      setCurrentUser(name);
-      setUserRole(role);
-    } catch(e) {
-      console.warn('[WMS] getUser fallback error:', e.message);
-    }
-  };
-
-  useEffect(() => {
-    // Hard timeout: if auth takes >6s for any reason, unblock the UI
-    const timeout = setTimeout(() => {
-      console.warn('[WMS] Auth timeout — forcing authReady');
-      setAuthReady(true);
-    }, 6000);
-
-    const init = async () => {
-      try {
-        // Quick connectivity check: if Supabase URL is missing, fail fast
-        if (!import.meta.env.VITE_SUPABASE_URL) {
-          console.error('[WMS] VITE_SUPABASE_URL not set in environment');
-          return;
-        }
-
-        const sessionResult = await supabase.auth.getSession();
-        const session = sessionResult?.data?.session;
-        if (session?.user) {
-          await Promise.race([
-            loadProfile(session.user.id),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('profile timeout')), 4000)),
-          ]).catch(e => console.warn('[WMS] loadProfile:', e.message));
-        }
-      } catch (e) {
-        console.warn('[WMS] getSession error:', e.message);
-      } finally {
-        clearTimeout(timeout);
-        setAuthReady(true);
-      }
-    };
-    init();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        await loadProfile(session.user.id);
-      } else if (event === 'SIGNED_OUT') {
-        setCurrentUser(null);
-        setUserRole('Warehouse');
-        setCurrentView('dashboard');
-        setPendingItemsState([]);
-        setOutboundAssignItemsState([]);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const t = dict[lang];
   const [currentView, setCurrentView] = useState('dashboard');
-
   const [modal, setModal] = useState({ isOpen: false, type: 'alert', title: '', msg: '', onConfirm: null, onAltConfirm: null, btnConfirm: '', btnAlt: '', btnCancel: '' });
-  const showAlert   = (msg) => setModal({ isOpen: true, type: 'alert',   title: t.modalAlert,   msg, onConfirm: null, btnConfirm: t.btnClose });
-  const showConfirm = (msg, onConfirm) => setModal({ isOpen: true, type: 'confirm', title: t.modalConfirm, msg, onConfirm, btnConfirm: t.btnConfirm });
-  const closeModal  = () => setModal(prev => ({ ...prev, isOpen: false }));
-
-  // Core DB state
   const [shelves, setShelves] = useState([]);
   const [turnoverItems, setTurnoverItems] = useState([]);
   const [containerTypes, setContainerTypes] = useState([]);
   const [inProductionCount, setInProductionCount] = useState(0);
   const [shelvesLoading, setShelvesLoading] = useState(true);
   const [realtimeOk, setRealtimeOk] = useState(true);
-
-  // Map control
   const [activeWarehouse, setActiveWarehouse] = useState('North Warehouse');
   const [activeZone, setActiveZone] = useState('');
   const [mapZoom, setMapZoom] = useState(1);
   const [inboundDate, setInboundDate] = useState(() => new Date().toISOString().split('T')[0]);
-
-  // ── Inbound queue (DB-backed, multi-device safe) ──────────
-  const [pendingItems, setPendingItemsState] = useState([]);      // [{ id, barcode }]
-  const [outboundAssignItems, setOutboundAssignItemsState] = useState([]); // [{ id, barcode, batch_no }]
-
-  const setPendingItems = useCallback(async (updater) => {
-    // Accept function or array - for compatibility with pages passing arrays
-    const next = typeof updater === 'function' ? updater(pendingItems) : updater;
-    setPendingItemsState(next);
-  }, [pendingItems]);
-
-  const setOutboundAssignItems = useCallback(async (updater) => {
-    const next = typeof updater === 'function' ? updater(outboundAssignItems) : updater;
-    setOutboundAssignItemsState(next);
-  }, [outboundAssignItems]);
-
+  const [pendingItems, setPendingItemsState] = useState([]);
+  const [outboundAssignItems, setOutboundAssignItemsState] = useState([]);
   const [selectedPending, setSelectedPending] = useState(null);
   const [selectedOutboundAssign, setSelectedOutboundAssign] = useState(null);
   const [inboundTransferSelected, setInboundTransferSelected] = useState([]);
   const [outboundPending, setOutboundPending] = useState([]);
   const [outboundNotFound, setOutboundNotFound] = useState([]);
 
-  // Refs for event handlers
   const viewRef = useRef(currentView);
   const shelvesRef = useRef(shelves);
   const turnoverRef = useRef(turnoverItems);
   const pendingItemsRef = useRef(pendingItems);
   const outPendingRef = useRef(outboundPending);
   const outAssignRef = useRef(outboundAssignItems);
-
   useEffect(() => { viewRef.current = currentView; }, [currentView]);
   useEffect(() => { shelvesRef.current = shelves; }, [shelves]);
   useEffect(() => { turnoverRef.current = turnoverItems; }, [turnoverItems]);
@@ -164,7 +55,53 @@ export default function App() {
   useEffect(() => { outPendingRef.current = outboundPending; }, [outboundPending]);
   useEffect(() => { outAssignRef.current = outboundAssignItems; }, [outboundAssignItems]);
 
-  // Zone sync
+  // Always light mode
+  useEffect(() => { document.documentElement.classList.add('light'); }, []);
+
+  // Apply user from session without extra API calls
+  const applySession = useCallback((session) => {
+    if (!session?.user) return;
+    const fallbackName = (session.user.email || '').split('@')[0] || 'User';
+    setCurrentUser(fallbackName);
+    setUserRole('Warehouse');
+    // Enrich from profiles in background
+    supabase.from('profiles').select('name, role').eq('id', session.user.id).single()
+      .then(({ data }) => {
+        if (data?.name) setCurrentUser(data.name);
+        if (data?.role) setUserRole(data.role);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        applySession(session);
+        setAuthReady(true);
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUser(null); setUserRole('Warehouse'); setCurrentView('dashboard');
+        setPendingItemsState([]); setOutboundAssignItemsState([]);
+      }
+    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => { if (session?.user) applySession(session); setAuthReady(true); })
+      .catch(() => setAuthReady(true));
+    const fallback = setTimeout(() => setAuthReady(true), 8000);
+    return () => { subscription.unsubscribe(); clearTimeout(fallback); };
+  }, [applySession]);
+
+  const t = dict[lang];
+  const showAlert   = (msg) => setModal({ isOpen: true, type: 'alert', title: t.modalAlert, msg, onConfirm: null, btnConfirm: t.btnClose });
+  const showConfirm = (msg, onConfirm) => setModal({ isOpen: true, type: 'confirm', title: t.modalConfirm, msg, onConfirm, btnConfirm: t.btnConfirm });
+  const closeModal  = () => setModal(prev => ({ ...prev, isOpen: false }));
+
+  const setPendingItems = useCallback(async (updater) => {
+    setPendingItemsState(typeof updater === 'function' ? updater(pendingItems) : updater);
+  }, [pendingItems]);
+  const setOutboundAssignItems = useCallback(async (updater) => {
+    setOutboundAssignItemsState(typeof updater === 'function' ? updater(outboundAssignItems) : updater);
+  }, [outboundAssignItems]);
+
   useEffect(() => {
     if (shelves.length > 0) {
       const zones = [...new Set(shelves.filter(s => s.warehouse === activeWarehouse).map(s => s.zone))].sort();
@@ -172,106 +109,63 @@ export default function App() {
     }
   }, [shelves, activeWarehouse, activeZone]);
 
-  // ── Data fetchers ─────────────────────────────────────────
   const fetchShelves = useCallback(async () => {
-    const { data } = await supabase.from('shelves')
-      .select('id,warehouse,zone,row_idx,col_idx,status,product_barcode,batch_no,batch_date,last_updated_by')
-      .order('id', { ascending: true });
+    const { data } = await supabase.from('shelves').select('id,warehouse,zone,row_idx,col_idx,status,product_barcode,batch_no,batch_date,last_updated_by').order('id', { ascending: true });
     if (data) { setShelves(data); setShelvesLoading(false); }
   }, []);
-
   const fetchTurnover = useCallback(async () => {
-    const { data } = await supabase.from('turnover_inventory').select('*')
-      .not('status', 'in', '(shipped,inbound_return)')
-      .order('added_at', { ascending: false });
+    const { data } = await supabase.from('turnover_inventory').select('*').not('status', 'in', '(shipped,inbound_return)').order('added_at', { ascending: false });
     if (data) setTurnoverItems(data);
   }, []);
-
   const fetchContainerTypes = useCallback(async () => {
     const { data } = await supabase.from('container_types').select('*').eq('active', true);
     if (data) setContainerTypes(data);
   }, []);
-
-  // Find container type from barcode (single source of truth)
   const getContainerTypeByBarcode = useCallback((barcode) => {
     if (!barcode) return null;
     return containerTypes.find(ct => barcode.startsWith(ct.barcode_prefix)) || null;
   }, [containerTypes]);
-
-  // ── inbound_queue (DB-backed) ─────────────────────────────
   const fetchInboundQueue = useCallback(async () => {
     const { data } = await supabase.from('inbound_queue').select('*').eq('added_by', currentUser).order('created_at', { ascending: true });
     if (data) setPendingItemsState(data.map(r => ({ id: r.id, barcode: r.barcode })));
-  }, []);
-
+  }, [currentUser]);
   const addToPendingDB = async (barcodes) => {
     if (!barcodes.length) return;
-    const rows = barcodes.map(bc => ({ barcode: bc, added_by: currentUser }));
-    const { data } = await supabase.from('inbound_queue').insert(rows).select();
+    const { data } = await supabase.from('inbound_queue').insert(barcodes.map(bc => ({ barcode: bc, added_by: currentUser }))).select();
     if (data) setPendingItemsState(prev => [...prev, ...data.map(r => ({ id: r.id, barcode: r.barcode }))]);
-    await autoMarkReusableReturn(barcodes);  // auto-detect reusable return
+    const { data: rt } = await supabase.from('reusable_tracking').select('barcode').in('barcode', barcodes).eq('current_status', 'ready_to_ship');
+    if (rt?.length) await supabase.from('reusable_tracking').update({ current_status: 'in_plant' }).in('barcode', rt.map(r => r.barcode));
   };
-
-  // Auto-detect reusable return: called whenever barcodes enter inbound
-  const autoMarkReusableReturn = async (barcodes) => {
-    if (!barcodes.length) return;
-    const { data } = await supabase
-      .from('reusable_tracking')
-      .select('barcode')
-      .in('barcode', barcodes)
-      .eq('current_status', 'ready_to_ship');
-    if (!data?.length) return;
-    await supabase
-      .from('reusable_tracking')
-      .update({ current_status: 'in_plant' })
-      .in('barcode', data.map(r => r.barcode));
-  };
-
   const removeFromPendingDB = async (barcodes) => {
     if (!barcodes.length) return;
     await supabase.from('inbound_queue').delete().in('barcode', barcodes);
     setPendingItemsState(prev => prev.filter(p => !barcodes.includes(p.barcode)));
   };
-
-  // ── outbound_assign_queue (DB-backed) ─────────────────────
   const fetchOutboundAssignQueue = useCallback(async () => {
     const { data } = await supabase.from('outbound_assign_queue').select('*').order('created_at', { ascending: true });
     if (data) setOutboundAssignItemsState(data.map(r => ({ id: r.id, barcode: r.barcode, batch_no: r.batch_no })));
   }, []);
-
   const addToOutboundAssignDB = async (items) => {
     if (!items.length) return;
-    const rows = items.map(i => ({ barcode: i.barcode, batch_no: i.batch_no, added_by: currentUser }));
-    const { data } = await supabase.from('outbound_assign_queue').insert(rows).select();
+    const { data } = await supabase.from('outbound_assign_queue').insert(items.map(i => ({ barcode: i.barcode, batch_no: i.batch_no, added_by: currentUser }))).select();
     if (data) setOutboundAssignItemsState(prev => [...prev, ...data.map(r => ({ id: r.id, barcode: r.barcode, batch_no: r.batch_no }))]);
   };
-
   const removeFromOutboundAssignDB = async (ids) => {
     if (!ids.length) return;
     await supabase.from('outbound_assign_queue').delete().in('id', ids);
     setOutboundAssignItemsState(prev => prev.filter(p => !ids.includes(p.id)));
   };
-
   const writeHistory = async (records) => { await supabase.from('shelf_history').insert(records); };
-
   const beep = useCallback(() => {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const o = ctx.createOscillator(); o.connect(ctx.destination);
-      o.frequency.value = 880; o.start(); o.stop(ctx.currentTime + 0.07);
-    } catch {}
+    try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const o = ctx.createOscillator(); o.connect(ctx.destination); o.frequency.value = 880; o.start(); o.stop(ctx.currentTime + 0.07); } catch {}
     if (navigator.vibrate) navigator.vibrate(40);
   }, []);
 
-  // ── Realtime subscriptions ────────────────────────────────
   useEffect(() => {
-    fetchShelves(); fetchTurnover(); fetchContainerTypes();
-    fetchInboundQueue(); fetchOutboundAssignQueue();
-
+    if (!currentUser) return;
+    fetchShelves(); fetchTurnover(); fetchContainerTypes(); fetchInboundQueue(); fetchOutboundAssignQueue();
     const ch = supabase.channel('wms-main')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'shelves' }, (p) => {
-        setShelves(prev => prev.map(s => s.id === p.new.id ? { ...s, ...p.new } : s));
-      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'shelves' }, (p) => { setShelves(prev => prev.map(s => s.id === p.new.id ? { ...s, ...p.new } : s)); })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'shelves' }, fetchShelves)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'turnover_inventory' }, fetchTurnover)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'inbound_queue' }, fetchInboundQueue)
@@ -281,375 +175,143 @@ export default function App() {
         if (data) setInProductionCount(data.length);
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'cloud_scanner' }, (p) => {
-        if (p.new.operator === currentUser && viewRef.current !== 'zebra') {
-          handleSmartScan(p.new.barcode);
-          supabase.from('cloud_scanner').delete().eq('id', p.new.id).then();
-        }
+        if (p.new.operator === currentUser && viewRef.current !== 'zebra') { handleSmartScan(p.new.barcode); supabase.from('cloud_scanner').delete().eq('id', p.new.id).then(); }
       }).subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          setRealtimeOk(true);
-          fetchShelves(); fetchTurnover(); fetchInboundQueue(); fetchOutboundAssignQueue();
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          setRealtimeOk(false);
-        }
+        if (status === 'SUBSCRIBED') { setRealtimeOk(true); fetchShelves(); fetchTurnover(); fetchInboundQueue(); fetchOutboundAssignQueue(); }
+        else if (['CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(status)) setRealtimeOk(false);
       });
-
-    supabase.from('production_batches').select('batch_no').eq('status', 'processing').then(({ data }) => {
-      if (data) setInProductionCount(data.length);
-    });
+    supabase.from('production_batches').select('batch_no').eq('status', 'processing').then(({ data }) => { if (data) setInProductionCount(data.length); });
     return () => supabase.removeChannel(ch);
   }, [currentUser]);
 
-  // ── Smart scan (Zebra relay + keyboard) ───────────────────
   const handleSmartScan = (bc) => {
     if (viewRef.current === 'outbound') {
       let avail = shelvesRef.current.filter(s => s.status === 'occupied' && !outPendingRef.current.find(p => p.id === s.id) && s.warehouse === 'South Warehouse');
       let match = avail.filter(s => s.batch_no === bc || s.product_barcode === bc);
-      if (match.length > 0) {
-        setOutboundPending(prev => [...prev, ...match].sort((a, b) => a.zone !== b.zone ? a.zone.localeCompare(b.zone) : a.row_idx - b.row_idx));
-        setActiveZone(match[0].zone);
-      } else {
-        // Check if in North WH
-        const northMatch = shelvesRef.current.filter(s => s.warehouse === 'North Warehouse' && (s.batch_no === bc || s.product_barcode === bc));
-        if (northMatch.length > 0) {
-          const loc = northMatch[0].id;
-          setOutboundNotFound(prev => prev.includes(bc) ? prev : [...prev, bc]);
-          showAlert(lang === 'zh' ? `此批號在北倉 ${loc}，請先移至南倉再出貨。` : `Barcode found in North WH at ${loc}. Move to South WH first.`);
-        } else if (!outPendingRef.current.some(p => p.batch_no === bc || p.product_barcode === bc)) {
-          setOutboundNotFound(prev => prev.includes(bc) ? prev : [...prev, bc]);
-        }
+      if (match.length > 0) { setOutboundPending(prev => [...prev, ...match].sort((a,b) => a.zone!==b.zone?a.zone.localeCompare(b.zone):a.row_idx-b.row_idx)); setActiveZone(match[0].zone); }
+      else {
+        const nm = shelvesRef.current.filter(s => s.warehouse==='North Warehouse' && (s.batch_no===bc||s.product_barcode===bc));
+        if (nm.length) { setOutboundNotFound(p=>p.includes(bc)?p:[...p,bc]); showAlert(lang==='zh'?`此批號在北倉 ${nm[0].id}，請先移至南倉再出貨。`:`Barcode found in North WH at ${nm[0].id}. Move to South WH first.`); }
+        else if (!outPendingRef.current.some(p=>p.batch_no===bc||p.product_barcode===bc)) setOutboundNotFound(p=>p.includes(bc)?p:[...p,bc]);
       }
     } else {
-      const existingBarcodes = [
-        ...shelvesRef.current.filter(s => s.status === 'occupied' && s.product_barcode).map(s => s.product_barcode),
-        ...turnoverRef.current.map(i => i.product_barcode),
-        ...pendingItemsRef.current.map(p => p.barcode),
-        ...outAssignRef.current.map(i => i.barcode),
-      ];
-      if (existingBarcodes.includes(bc)) return showAlert(t.msgDupSingle.replace('{bc}', bc));
-      addToPendingDB([bc]);  // autoMarkReusableReturn is called inside addToPendingDB
-      setSelectedPending(bc);
-      if (viewRef.current !== 'inbound') { setCurrentView('inbound'); setActiveWarehouse('North Warehouse'); }
+      const ex = [...shelvesRef.current.filter(s=>s.status==='occupied'&&s.product_barcode).map(s=>s.product_barcode),...turnoverRef.current.map(i=>i.product_barcode),...pendingItemsRef.current.map(p=>p.barcode),...outAssignRef.current.map(i=>i.barcode)];
+      if (ex.includes(bc)) return showAlert(t.msgDupSingle.replace('{bc}',bc));
+      addToPendingDB([bc]); setSelectedPending(bc);
+      if (viewRef.current!=='inbound') { setCurrentView('inbound'); setActiveWarehouse('North Warehouse'); }
     }
   };
 
   useEffect(() => {
-    if (!currentUser || currentView === 'zebra') return;
-    let buf = ''; let tmr;
-    const onKey = (e) => {
-      if (e.ctrlKey || e.altKey || e.metaKey || modal.isOpen || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      if (e.key === 'Enter') { if (buf.trim()) handleSmartScan(buf.trim()); buf = ''; return; }
-      if (e.key.length === 1 && /[a-zA-Z0-9\-]/.test(e.key)) { buf += e.key; clearTimeout(tmr); tmr = setTimeout(() => { buf = ''; }, 50); }
+    if (!currentUser||currentView==='zebra') return;
+    let buf=''; let tmr;
+    const onKey=(e)=>{
+      if(e.ctrlKey||e.altKey||e.metaKey||modal.isOpen||e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+      if(e.key==='Enter'){if(buf.trim())handleSmartScan(buf.trim());buf='';return;}
+      if(e.key.length===1&&/[a-zA-Z0-9\-]/.test(e.key)){buf+=e.key;clearTimeout(tmr);tmr=setTimeout(()=>{buf='';},50);}
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [currentView, currentUser, modal.isOpen]);
+    window.addEventListener('keydown',onKey);
+    return ()=>window.removeEventListener('keydown',onKey);
+  }, [currentView,currentUser,modal.isOpen]);
 
-  // ── Inbound handlers ──────────────────────────────────────
   const handleAddPendingInbound = async (batchInput) => {
-    const items = batchInput.split('\n').map(s => s.trim()).filter(Boolean);
-    const existingBarcodes = [
-      ...shelves.filter(s => s.status === 'occupied' && s.product_barcode).map(s => s.product_barcode),
-      ...turnoverItems.map(i => i.product_barcode),
-      ...pendingItems.map(p => p.barcode),
-      ...outboundAssignItems.map(i => i.barcode),
-    ];
-    const newItems = []; const dups = [];
-    items.forEach(item => { if (existingBarcodes.includes(item) || newItems.includes(item)) dups.push(item); else newItems.push(item); });
-    if (dups.length > 0) showAlert(t.msgDupFilter.replace('{n}', dups.length).replace('{list}', dups.slice(0, 3).join(', ') + (dups.length > 3 ? '...' : '')));
-    if (newItems.length > 0) await addToPendingDB(newItems);
+    const items = batchInput.split('\n').map(s=>s.trim()).filter(Boolean);
+    const ex = [...shelves.filter(s=>s.status==='occupied'&&s.product_barcode).map(s=>s.product_barcode),...turnoverItems.map(i=>i.product_barcode),...pendingItems.map(p=>p.barcode),...outboundAssignItems.map(i=>i.barcode)];
+    const newItems=[]; const dups=[];
+    items.forEach(item=>{if(ex.includes(item)||newItems.includes(item))dups.push(item);else newItems.push(item);});
+    if(dups.length>0) showAlert(t.msgDupFilter.replace('{n}',dups.length).replace('{list}',dups.slice(0,3).join(', ')+(dups.length>3?'...':'')));
+    if(newItems.length>0) await addToPendingDB(newItems);
   };
-
   const handleRequestRemovePending = (e, itemToRemove) => {
-    if (e) e.stopPropagation();
-    const items = itemToRemove ? [itemToRemove] : pendingItems.map(p => p.barcode);
-    if (!items.length) return;
-    const barcodes = typeof items[0] === 'string' ? items : items.map(p => p.barcode);
-    setModal({
-      isOpen: true, type: 'three-way', title: t.modalAlert,
-      msg: t.msgRemovePendingControl.replace('{n}', barcodes.length),
-      btnConfirm: t.btnReturnToTurnover, btnAlt: t.btnDiscard, btnCancel: t.btnCancel,
-      onConfirm: async () => {
-        await supabase.from('turnover_inventory').insert(barcodes.map(bc => ({ product_barcode: bc, batch_date: inboundDate, added_by: currentUser })));
-        await removeFromPendingDB(barcodes);
-        fetchTurnover(); setSelectedPending(null); showAlert(t.msgAutoSuccess);
-      },
-      onAltConfirm: async () => { await removeFromPendingDB(barcodes); setSelectedPending(null); }
-    });
+    if(e) e.stopPropagation();
+    const items = itemToRemove?[itemToRemove]:pendingItems.map(p=>p.barcode);
+    if(!items.length) return;
+    const barcodes = typeof items[0]==='string'?items:items.map(p=>p.barcode);
+    setModal({isOpen:true,type:'three-way',title:t.modalAlert,msg:t.msgRemovePendingControl.replace('{n}',barcodes.length),btnConfirm:t.btnReturnToTurnover,btnAlt:t.btnDiscard,btnCancel:t.btnCancel,
+      onConfirm:async()=>{await supabase.from('turnover_inventory').insert(barcodes.map(bc=>({product_barcode:bc,batch_date:inboundDate,added_by:currentUser})));await removeFromPendingDB(barcodes);fetchTurnover();setSelectedPending(null);showAlert(t.msgAutoSuccess);},
+      onAltConfirm:async()=>{await removeFromPendingDB(barcodes);setSelectedPending(null);}});
   };
-
   const handleAutoAssign = async (zoneStr) => {
-    const empty = shelves.filter(s => s.warehouse === 'North Warehouse' && s.zone === zoneStr && s.status === 'empty');
-    if (!empty.length) return showAlert(t.msgNoSpace);
-    const n = Math.min(pendingItems.length, empty.length);
-    const toAssign = pendingItems.slice(0, n);
-    showConfirm(t.msgAutoConfirm.replace('{n}', n).replace('{z}', zoneStr), async () => {
-      const results = await Promise.allSettled(
-        toAssign.map((item, i) => supabase.from('shelves').update({ status: 'occupied', product_barcode: item.barcode, batch_date: inboundDate, last_updated_by: currentUser }).eq('id', empty[i].id))
-      );
-      const succeeded = toAssign.filter((_, i) => results[i].status === 'fulfilled' && !results[i].value.error);
-      const failed = toAssign.filter((_, i) => results[i].status === 'rejected' || results[i].value.error);
-      if (succeeded.length > 0) {
-        await writeHistory(succeeded.map((item, i) => ({ shelf_id: empty[toAssign.indexOf(item)].id, action: 'inbound', product_barcode: item.barcode, operator: currentUser, batch_date: inboundDate })));
-        await removeFromPendingDB(succeeded.map(p => p.barcode));
-        beep();
-      }
-      if (failed.length > 0) showAlert(`${succeeded.length} assigned. ${failed.length} failed: ${failed.map(p => p.barcode).join(', ')}`);
-      else showAlert(t.msgAutoSuccess);
+    const empty = shelves.filter(s=>s.warehouse==='North Warehouse'&&s.zone===zoneStr&&s.status==='empty');
+    if(!empty.length) return showAlert(t.msgNoSpace);
+    const n = Math.min(pendingItems.length,empty.length); const toAssign=pendingItems.slice(0,n);
+    showConfirm(t.msgAutoConfirm.replace('{n}',n).replace('{z}',zoneStr),async()=>{
+      const results = await Promise.allSettled(toAssign.map((item,i)=>supabase.from('shelves').update({status:'occupied',product_barcode:item.barcode,batch_date:inboundDate,last_updated_by:currentUser}).eq('id',empty[i].id)));
+      const succeeded=toAssign.filter((_,i)=>results[i].status==='fulfilled'&&!results[i].value.error);
+      const failed=toAssign.filter((_,i)=>results[i].status==='rejected'||results[i].value.error);
+      if(succeeded.length>0){await writeHistory(succeeded.map((item,i)=>({shelf_id:empty[toAssign.indexOf(item)].id,action:'inbound',product_barcode:item.barcode,operator:currentUser,batch_date:inboundDate})));await removeFromPendingDB(succeeded.map(p=>p.barcode));beep();}
+      if(failed.length>0) showAlert(`${succeeded.length} assigned. ${failed.length} failed.`); else showAlert(t.msgAutoSuccess);
       setSelectedPending(null);
     });
   };
-
   const handleShelfClickInbound = async (shelf) => {
-    if (shelf === 'transfer_all') {
-      if (!inboundTransferSelected.length) return;
-      showConfirm(t.msgTransferTurnoverConfirm.replace('{n}', inboundTransferSelected.length), async () => {
-        await Promise.all(inboundTransferSelected.map(s => supabase.from('shelves').update({ status: 'empty', product_barcode: null, batch_no: null, batch_date: null, last_updated_by: currentUser }).eq('id', s.id)));
-        await writeHistory(inboundTransferSelected.map(s => ({ shelf_id: s.id, action: 'outbound_turnover', product_barcode: s.product_barcode, operator: currentUser })));
-        await supabase.from('turnover_inventory').insert(inboundTransferSelected.map(s => ({ product_barcode: s.product_barcode, batch_date: s.batch_date, added_by: currentUser })));
-        fetchTurnover(); setInboundTransferSelected([]); beep(); showAlert(t.msgAutoSuccess);
-      });
-      return;
-    }
-    if (shelf.status === 'occupied') {
-      setInboundTransferSelected(prev => prev.find(p => p.id === shelf.id) ? prev.filter(p => p.id !== shelf.id) : [...prev, shelf]);
-      return;
-    }
-    if (selectedPending) {
-      const { error } = await supabase.from('shelves').update({ status: 'occupied', product_barcode: selectedPending, batch_date: inboundDate, last_updated_by: currentUser }).eq('id', shelf.id);
-      if (!error) {
-        await writeHistory([{ shelf_id: shelf.id, action: 'inbound', product_barcode: selectedPending, operator: currentUser, batch_date: inboundDate }]);
-        await removeFromPendingDB([selectedPending]);
-        beep(); setSelectedPending(null);
-      } else showAlert(t.msgFail);
-      return;
-    }
+    if(shelf==='transfer_all'){if(!inboundTransferSelected.length)return;showConfirm(t.msgTransferTurnoverConfirm.replace('{n}',inboundTransferSelected.length),async()=>{await Promise.all(inboundTransferSelected.map(s=>supabase.from('shelves').update({status:'empty',product_barcode:null,batch_no:null,batch_date:null,last_updated_by:currentUser}).eq('id',s.id)));await writeHistory(inboundTransferSelected.map(s=>({shelf_id:s.id,action:'outbound_turnover',product_barcode:s.product_barcode,operator:currentUser})));await supabase.from('turnover_inventory').insert(inboundTransferSelected.map(s=>({product_barcode:s.product_barcode,batch_date:s.batch_date,added_by:currentUser})));fetchTurnover();setInboundTransferSelected([]);beep();showAlert(t.msgAutoSuccess);});return;}
+    if(shelf.status==='occupied'){setInboundTransferSelected(prev=>prev.find(p=>p.id===shelf.id)?prev.filter(p=>p.id!==shelf.id):[...prev,shelf]);return;}
+    if(selectedPending){const{error}=await supabase.from('shelves').update({status:'occupied',product_barcode:selectedPending,batch_date:inboundDate,last_updated_by:currentUser}).eq('id',shelf.id);if(!error){await writeHistory([{shelf_id:shelf.id,action:'inbound',product_barcode:selectedPending,operator:currentUser,batch_date:inboundDate}]);await removeFromPendingDB([selectedPending]);beep();setSelectedPending(null);}else showAlert(t.msgFail);return;}
     showAlert(t.msgSelectFirst);
   };
-
-  // ── Outbound handlers ─────────────────────────────────────
   const handleAddOutboundList = (input) => {
-    const barcodes = [...new Set(input.split('\n').map(s => s.trim()).filter(Boolean))];
-    let found = []; let notFound = [];
-    let avail = shelves.filter(s => s.status === 'occupied' && !outboundPending.find(p => p.id === s.id) && s.warehouse === 'South Warehouse');
-    barcodes.forEach(bc => {
-      const match = avail.filter(s => s.batch_no === bc || s.product_barcode === bc);
-      if (match.length) { found.push(...match); avail = avail.filter(s => !match.map(m => m.id).includes(s.id)); }
-      else if (!outboundPending.some(p => p.batch_no === bc || p.product_barcode === bc)) {
-        // Check North WH
-        const northMatch = shelves.filter(s => s.warehouse === 'North Warehouse' && (s.batch_no === bc || s.product_barcode === bc));
-        if (northMatch.length) showAlert(lang === 'zh' ? `批號 ${bc} 在北倉 ${northMatch[0].id}，請先移至南倉。` : `${bc} found in North WH at ${northMatch[0].id}. Move to South WH first.`);
-        else notFound.push(bc);
-      }
-    });
-    const newP = [...outboundPending, ...found].sort((a, b) => a.zone !== b.zone ? a.zone.localeCompare(b.zone) : a.row_idx - b.row_idx);
-    setOutboundPending(newP); setOutboundNotFound([...outboundNotFound, ...notFound]);
-    if (newP.length) setActiveZone(newP[0].zone);
+    const barcodes=[...new Set(input.split('\n').map(s=>s.trim()).filter(Boolean))]; let found=[]; let notFound=[];
+    let avail=shelves.filter(s=>s.status==='occupied'&&!outboundPending.find(p=>p.id===s.id)&&s.warehouse==='South Warehouse');
+    barcodes.forEach(bc=>{const match=avail.filter(s=>s.batch_no===bc||s.product_barcode===bc);if(match.length){found.push(...match);avail=avail.filter(s=>!match.map(m=>m.id).includes(s.id));}else if(!outboundPending.some(p=>p.batch_no===bc||p.product_barcode===bc)){const nm=shelves.filter(s=>s.warehouse==='North Warehouse'&&(s.batch_no===bc||s.product_barcode===bc));if(nm.length)showAlert(lang==='zh'?`批號 ${bc} 在北倉 ${nm[0].id}，請先移至南倉。`:`${bc} found in North WH at ${nm[0].id}. Move to South WH first.`);else notFound.push(bc);}});
+    const newP=[...outboundPending,...found].sort((a,b)=>a.zone!==b.zone?a.zone.localeCompare(b.zone):a.row_idx-b.row_idx);
+    setOutboundPending(newP);setOutboundNotFound([...outboundNotFound,...notFound]);if(newP.length)setActiveZone(newP[0].zone);
   };
-
-  const handleRequestRemoveOutboundAssign = (e, itemToRemove) => {
-    if (e) e.stopPropagation();
-    const items = itemToRemove ? [itemToRemove] : outboundAssignItems;
-    if (!items.length) return;
-    showConfirm(t.msgRemoveOutboundAssignControl.replace('{n}', items.length), async () => {
-      await supabase.from('turnover_inventory').insert(items.map(o => ({ product_barcode: o.barcode, batch_date: inboundDate, added_by: currentUser })));
-      await removeFromOutboundAssignDB(items.map(i => i.id));
-      fetchTurnover(); setSelectedOutboundAssign(null); showAlert(t.msgAutoSuccess);
-    });
+  const handleRequestRemoveOutboundAssign = (e,itemToRemove) => {
+    if(e) e.stopPropagation(); const items=itemToRemove?[itemToRemove]:outboundAssignItems; if(!items.length)return;
+    showConfirm(t.msgRemoveOutboundAssignControl.replace('{n}',items.length),async()=>{await supabase.from('turnover_inventory').insert(items.map(o=>({product_barcode:o.barcode,batch_date:inboundDate,added_by:currentUser})));await removeFromOutboundAssignDB(items.map(i=>i.id));fetchTurnover();setSelectedOutboundAssign(null);showAlert(t.msgAutoSuccess);});
   };
-
   const handleAutoAssignOutbound = async (zoneStr) => {
-    const empty = shelves.filter(s => s.warehouse === 'South Warehouse' && s.zone === zoneStr && s.status === 'empty');
-    if (!empty.length) return showAlert(t.msgNoSpace);
-    const n = Math.min(outboundAssignItems.length, empty.length);
-    const toAssign = outboundAssignItems.slice(0, n);
-    const today = new Date().toISOString().split('T')[0];
-    showConfirm(t.msgAutoConfirm.replace('{n}', n).replace('{z}', zoneStr), async () => {
-      await Promise.all(toAssign.map((obj, i) => supabase.from('shelves').update({ status: 'occupied', product_barcode: obj.barcode, batch_no: obj.batch_no, batch_date: today, last_updated_by: currentUser }).eq('id', empty[i].id)));
-      await writeHistory(toAssign.map((obj, i) => ({ shelf_id: empty[i].id, action: 'inbound', product_barcode: obj.barcode, batch_no: obj.batch_no, operator: currentUser, batch_date: today })));
-      await removeFromOutboundAssignDB(toAssign.map(i => i.id));
-      setSelectedOutboundAssign(null); beep(); showAlert(t.msgAutoSuccess);
-    });
+    const empty=shelves.filter(s=>s.warehouse==='South Warehouse'&&s.zone===zoneStr&&s.status==='empty'); if(!empty.length)return showAlert(t.msgNoSpace);
+    const n=Math.min(outboundAssignItems.length,empty.length); const toAssign=outboundAssignItems.slice(0,n); const today=new Date().toISOString().split('T')[0];
+    showConfirm(t.msgAutoConfirm.replace('{n}',n).replace('{z}',zoneStr),async()=>{await Promise.all(toAssign.map((obj,i)=>supabase.from('shelves').update({status:'occupied',product_barcode:obj.barcode,batch_no:obj.batch_no,batch_date:today,last_updated_by:currentUser}).eq('id',empty[i].id)));await writeHistory(toAssign.map((obj,i)=>({shelf_id:empty[i].id,action:'inbound',product_barcode:obj.barcode,batch_no:obj.batch_no,operator:currentUser,batch_date:today})));await removeFromOutboundAssignDB(toAssign.map(i=>i.id));setSelectedOutboundAssign(null);beep();showAlert(t.msgAutoSuccess);});
   };
-
   const handleShelfClickOutbound = async (shelf) => {
-    if (shelf.status === 'empty' && selectedOutboundAssign) {
-      const target = outboundAssignItems.find(i => i.id === selectedOutboundAssign);
-      if (!target) return;
-      const today = new Date().toISOString().split('T')[0];
-      const { error } = await supabase.from('shelves').update({ status: 'occupied', product_barcode: target.barcode, batch_no: target.batch_no, batch_date: today, last_updated_by: currentUser }).eq('id', shelf.id);
-      if (!error) {
-        await writeHistory([{ shelf_id: shelf.id, action: 'inbound', product_barcode: target.barcode, batch_no: target.batch_no, operator: currentUser, batch_date: today }]);
-        await removeFromOutboundAssignDB([target.id]);
-        beep(); setSelectedOutboundAssign(null);
-      } else showAlert(t.msgFail);
-      return;
-    }
-    if (shelf.status === 'occupied') {
-      setOutboundPending(prev => prev.find(p => p.id === shelf.id) ? prev.filter(p => p.id !== shelf.id) : [...prev, shelf]);
-    } else {
-      showAlert(outboundAssignItems.length ? t.msgSelectFirst : t.msgEmptyPick);
-    }
+    if(shelf.status==='empty'&&selectedOutboundAssign){const target=outboundAssignItems.find(i=>i.id===selectedOutboundAssign);if(!target)return;const today=new Date().toISOString().split('T')[0];const{error}=await supabase.from('shelves').update({status:'occupied',product_barcode:target.barcode,batch_no:target.batch_no,batch_date:today,last_updated_by:currentUser}).eq('id',shelf.id);if(!error){await writeHistory([{shelf_id:shelf.id,action:'inbound',product_barcode:target.barcode,batch_no:target.batch_no,operator:currentUser,batch_date:today}]);await removeFromOutboundAssignDB([target.id]);beep();setSelectedOutboundAssign(null);}else showAlert(t.msgFail);return;}
+    if(shelf.status==='occupied'){setOutboundPending(prev=>prev.find(p=>p.id===shelf.id)?prev.filter(p=>p.id!==shelf.id):[...prev,shelf]);}else{showAlert(outboundAssignItems.length?t.msgSelectFirst:t.msgEmptyPick);}
   };
-
-  const handlePickAllFound = async (customerName = '') => {
-    if (!outboundPending.length) return;
-    // Clear shelves
-    await Promise.all(outboundPending.map(s => supabase.from('shelves').update({ status: 'empty', product_barcode: null, batch_no: null, batch_date: null, last_updated_by: currentUser }).eq('id', s.id)));
-    await writeHistory(outboundPending.map(s => ({ shelf_id: s.id, action: 'outbound_customer', product_barcode: s.product_barcode, batch_no: s.batch_no, operator: currentUser })));
-
-    // Reusable tracking — use upsert (single request instead of N*2)
-    const recyclable = outboundPending.filter(s => {
-        const ct = getContainerTypeByBarcode(s.product_barcode);
-        return ct?.is_reusable;
-      });
-    if (recyclable.length) {
-      if (recyclable.length) {
-        // Get current counts
-        const { data: existing } = await supabase.from('reusable_tracking').select('barcode,use_count').in('barcode', recyclable.map(s => s.product_barcode));
-      const existingMap = Object.fromEntries((existing || []).map(e => [e.barcode, e.use_count]));
-      const now = new Date().toISOString();
-      await supabase.from('reusable_tracking').upsert(
-          recyclable.map(s => ({
-            barcode: s.product_barcode,
-            use_count: (existingMap[s.product_barcode] || 0) + 1,
-            current_status: 'ready_to_ship',
-            last_shipped_at: now,
-          })),
-          { onConflict: 'barcode' }
-        );
-      }
-    }
-
-    // Mark as shipped
-    const batchNos = [...new Set(outboundPending.map(s => s.batch_no).filter(Boolean))];
-    const shippedAt = new Date().toISOString();
-    if (batchNos.length) {
-      await Promise.all([
-        ...batchNos.map(bNo => supabase.from('turnover_inventory').update({ status: 'shipped', updated_at: shippedAt }).eq('batch_no', bNo)),
-        ...batchNos.map(bNo => supabase.from('production_batches').update({ status: 'shipped', customer: customerName, shipped_at: shippedAt }).eq('batch_no', bNo)),
-      ]);
-    }
-    beep(); setOutboundPending([]); fetchTurnover(); showAlert(t.msgAutoSuccess);
+  const handlePickAllFound = async (customerName='') => {
+    if(!outboundPending.length)return;
+    await Promise.all(outboundPending.map(s=>supabase.from('shelves').update({status:'empty',product_barcode:null,batch_no:null,batch_date:null,last_updated_by:currentUser}).eq('id',s.id)));
+    await writeHistory(outboundPending.map(s=>({shelf_id:s.id,action:'outbound_customer',product_barcode:s.product_barcode,batch_no:s.batch_no,operator:currentUser})));
+    const recyclable=outboundPending.filter(s=>getContainerTypeByBarcode(s.product_barcode)?.is_reusable);
+    if(recyclable.length){const{data:ex}=await supabase.from('reusable_tracking').select('barcode,use_count').in('barcode',recyclable.map(s=>s.product_barcode));const exMap=Object.fromEntries((ex||[]).map(e=>[e.barcode,e.use_count]));await supabase.from('reusable_tracking').upsert(recyclable.map(s=>({barcode:s.product_barcode,use_count:(exMap[s.product_barcode]||0)+1,current_status:'ready_to_ship',last_shipped_at:new Date().toISOString()})),{onConflict:'barcode'});}
+    const batchNos=[...new Set(outboundPending.map(s=>s.batch_no).filter(Boolean))]; const shippedAt=new Date().toISOString();
+    if(batchNos.length){await Promise.all([...batchNos.map(bNo=>supabase.from('turnover_inventory').update({status:'shipped',updated_at:shippedAt}).eq('batch_no',bNo)),...batchNos.map(bNo=>supabase.from('production_batches').update({status:'shipped',customer:customerName,shipped_at:shippedAt}).eq('batch_no',bNo))]);}
+    beep();setOutboundPending([]);fetchTurnover();showAlert(t.msgAutoSuccess);
   };
+  const handleLogout = async () => { await supabase.auth.signOut(); };
+  useEffect(()=>{if(['QC','Facility'].includes(userRole)&&currentView!=='sparepart')setCurrentView('sparepart');},[userRole]);
 
-  // Turnover: pass addToOutboundAssignDB so Turnover can add to DB-backed queue
-  const handleTurnoverMoveToOutbound = async (items) => {
-    await addToOutboundAssignDB(items);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    // State cleared by onAuthStateChange SIGNED_OUT handler
-  };
-
-  // Derive barcode arrays for backward compat with pages expecting string arrays
-  const pendingBarcodes = pendingItems.map(p => p.barcode);
-  const selectedPendingBarcode = selectedPending; // still a string (barcode)
-
-  // Redirect QC/Facility to sparepart if they somehow land on a WMS-only page
-  useEffect(() => {
-    if (['QC','Facility'].includes(userRole) && currentView !== 'sparepart' && currentView !== 'dashboard') {
-      setCurrentView('sparepart');
-    }
-  }, [userRole]);
-
-  // Show nothing while auth is resolving (prevents flash of login page)
   if (!authReady) return (
-    <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-      background:'#0f172a', gap:16, padding:24, fontFamily:'monospace' }}>
-      <div style={{ width:32, height:32, border:'3px solid #334155', borderTopColor:'#3b82f6', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
-      <div style={{ fontSize:13, color:'#94a3b8' }}>Connecting to Supabase...</div>
-      <div style={{ background:'#1e293b', borderRadius:8, padding:16, maxWidth:480, width:'100%', fontSize:11, color:'#64748b', lineHeight:2 }}>
-        <div><span style={{color:'#94a3b8'}}>URL:</span> {import.meta.env.VITE_SUPABASE_URL
-          ? <span style={{color:'#4ade80'}}>{import.meta.env.VITE_SUPABASE_URL.slice(0,40)}...</span>
-          : <span style={{color:'#f87171'}}>❌ VITE_SUPABASE_URL not set in Vercel</span>}</div>
-        <div><span style={{color:'#94a3b8'}}>KEY:</span> {import.meta.env.VITE_SUPABASE_ANON_KEY
-          ? <span style={{color:'#4ade80'}}>✓ set ({import.meta.env.VITE_SUPABASE_ANON_KEY.slice(0,12)}...)</span>
-          : <span style={{color:'#f87171'}}>❌ VITE_SUPABASE_ANON_KEY not set in Vercel</span>}</div>
-      </div>
-      <div style={{ fontSize:11, color:'#475569', textAlign:'center', maxWidth:420 }}>
-        If both show ❌, go to Vercel → Settings → Environment Variables and add them, then Redeploy.
-      </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'#f2f2f7',gap:14}}>
+      <div style={{width:32,height:32,border:'3px solid #e5e7eb',borderTopColor:'#2563eb',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
+      <div style={{fontSize:13,color:'#9ca3af'}}>Loading...</div>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 
   if (!currentUser) return (
-    <>
-      <Login t={t} lang={lang} setLang={setLang} showAlert={showAlert} />
-      <GlobalModal modal={modal} closeModal={closeModal} t={t} />
-    </>
+    <><Login t={t} lang={lang} setLang={setLang} showAlert={showAlert}/><GlobalModal modal={modal} closeModal={closeModal} t={t}/></>
   );
 
   return (
     <div className="app-shell">
-      <GlobalModal modal={modal} closeModal={closeModal} t={t} />
-      <Navbar currentUser={currentUser} userRole={userRole} handleLogout={handleLogout} lang={lang} setLang={setLang} currentView={currentView} setCurrentView={setCurrentView} t={t} realtimeOk={realtimeOk} />
-
+      <GlobalModal modal={modal} closeModal={closeModal} t={t}/>
+      <Navbar currentUser={currentUser} userRole={userRole} handleLogout={handleLogout} lang={lang} setLang={setLang} currentView={currentView} setCurrentView={setCurrentView} t={t} realtimeOk={realtimeOk}/>
       <div className="main-content">
-        {currentView === 'production_record' && <ProductionRecord t={t} lang={lang} />}
-        {currentView === 'admin' && userRole === 'Admin' && <Admin lang={lang} showAlert={showAlert} showConfirm={showConfirm} currentUser={currentUser} />}
-        {currentView === 'sparepart' && ['Admin','QC','Facility'].includes(userRole) && <SparePart lang={lang} currentUser={currentUser} userRole={userRole} showAlert={showAlert} showConfirm={showConfirm} />}
-        {currentView === 'dashboard' && <Dashboard t={t} lang={lang} shelves={shelves} turnoverItems={turnoverItems} inProductionCount={inProductionCount} showAlert={showAlert}
-          onRefresh={async () => { await fetchShelves(); await fetchTurnover(); }} />}
-        {currentView === 'zebra'             && <ZebraScanner t={t} currentUser={currentUser} />}
-        {currentView === 'reusable'          && <ReusableTracking t={t} lang={lang} showAlert={showAlert} />}
-        {currentView === 'mes'               && <MES t={t} lang={lang} currentUser={currentUser} showAlert={showAlert} />}
-
-        {currentView === 'turnover' && (
-          <Turnover t={t} lang={lang} currentUser={currentUser}
-            turnoverItems={turnoverItems} fetchTurnover={fetchTurnover}
-            showAlert={showAlert} showConfirm={showConfirm}
-            addToOutboundAssignDB={handleTurnoverMoveToOutbound}
-            setCurrentView={setCurrentView} setActiveWarehouse={setActiveWarehouse}
-            addToPendingDB={addToPendingDB}
-          />
-        )}
-
-        {currentView === 'inbound' && (
-          <Inbound t={t} lang={lang} currentUser={currentUser}
-            shelves={shelves} shelvesLoading={shelvesLoading}
-            turnoverItems={turnoverItems}
-            pendingItems={pendingItems} selectedPending={selectedPending} setSelectedPending={setSelectedPending}
-            outboundAssignItems={outboundAssignItems}
-            inboundTransferSelected={inboundTransferSelected} setInboundTransferSelected={setInboundTransferSelected}
-            activeWarehouse={activeWarehouse} setActiveWarehouse={setActiveWarehouse}
-            activeZone={activeZone} setActiveZone={setActiveZone}
-            showAlert={showAlert} showConfirm={showConfirm}
-            handleRequestRemovePending={handleRequestRemovePending}
-            handleAutoAssign={handleAutoAssign}
-            handleAddPendingInbound={handleAddPendingInbound}
-            handleShelfClickInbound={handleShelfClickInbound}
-            inboundDate={inboundDate} setInboundDate={setInboundDate}
-          />
-        )}
-
-        {currentView === 'outbound' && (
-          <Outbound t={t} lang={lang} currentUser={currentUser}
-            shelves={shelves}
-            outboundAssignItems={outboundAssignItems}
-            outboundPending={outboundPending} setOutboundPending={setOutboundPending}
-            outboundNotFound={outboundNotFound} setOutboundNotFound={setOutboundNotFound}
-            activeWarehouse={activeWarehouse} setActiveWarehouse={setActiveWarehouse}
-            activeZone={activeZone} setActiveZone={setActiveZone}
-            selectedOutboundAssign={selectedOutboundAssign} setSelectedOutboundAssign={setSelectedOutboundAssign}
-            handleAutoAssignOutbound={handleAutoAssignOutbound}
-            handleRequestRemoveOutboundAssign={handleRequestRemoveOutboundAssign}
-            handleAddOutboundList={handleAddOutboundList}
-            handleShelfClickOutbound={handleShelfClickOutbound}
-            handlePickAllFound={handlePickAllFound}
-          />
-        )}
-
-        {currentView === 'map' && (
-          <WarehouseMap t={t} lang={lang} currentView="map" shelves={shelves}
-            activeWarehouse={activeWarehouse} setActiveWarehouse={setActiveWarehouse}
-            activeZone={activeZone} setActiveZone={setActiveZone}
-            mapZoom={mapZoom} setMapZoom={setMapZoom} />
-        )}
-
-        <ZebraTool t={t} currentUser={currentUser} lang={lang} />
+        {currentView==='production_record'&&<ProductionRecord t={t} lang={lang}/>}
+        {currentView==='admin'&&userRole==='Admin'&&<Admin lang={lang} showAlert={showAlert} showConfirm={showConfirm} currentUser={currentUser}/>}
+        {currentView==='sparepart'&&['Admin','QC','Facility'].includes(userRole)&&<SparePart lang={lang} currentUser={currentUser} userRole={userRole} showAlert={showAlert} showConfirm={showConfirm}/>}
+        {currentView==='dashboard'&&<Dashboard t={t} lang={lang} shelves={shelves} turnoverItems={turnoverItems} inProductionCount={inProductionCount} showAlert={showAlert} onRefresh={async()=>{await fetchShelves();await fetchTurnover();}}/>}
+        {currentView==='zebra'&&<ZebraScanner t={t} currentUser={currentUser}/>}
+        {currentView==='reusable'&&<ReusableTracking t={t} lang={lang} showAlert={showAlert}/>}
+        {currentView==='mes'&&<MES t={t} lang={lang} currentUser={currentUser} showAlert={showAlert}/>}
+        {currentView==='turnover'&&<Turnover t={t} lang={lang} currentUser={currentUser} turnoverItems={turnoverItems} fetchTurnover={fetchTurnover} showAlert={showAlert} showConfirm={showConfirm} addToOutboundAssignDB={addToOutboundAssignDB} setCurrentView={setCurrentView} setActiveWarehouse={setActiveWarehouse} addToPendingDB={addToPendingDB}/>}
+        {currentView==='inbound'&&<Inbound t={t} lang={lang} currentUser={currentUser} shelves={shelves} shelvesLoading={shelvesLoading} turnoverItems={turnoverItems} pendingItems={pendingItems} selectedPending={selectedPending} setSelectedPending={setSelectedPending} outboundAssignItems={outboundAssignItems} inboundTransferSelected={inboundTransferSelected} setInboundTransferSelected={setInboundTransferSelected} activeWarehouse={activeWarehouse} setActiveWarehouse={setActiveWarehouse} activeZone={activeZone} setActiveZone={setActiveZone} showAlert={showAlert} showConfirm={showConfirm} handleRequestRemovePending={handleRequestRemovePending} handleAutoAssign={handleAutoAssign} handleAddPendingInbound={handleAddPendingInbound} handleShelfClickInbound={handleShelfClickInbound} inboundDate={inboundDate} setInboundDate={setInboundDate}/>}
+        {currentView==='outbound'&&<Outbound t={t} lang={lang} currentUser={currentUser} shelves={shelves} outboundAssignItems={outboundAssignItems} outboundPending={outboundPending} setOutboundPending={setOutboundPending} outboundNotFound={outboundNotFound} setOutboundNotFound={setOutboundNotFound} activeWarehouse={activeWarehouse} setActiveWarehouse={setActiveWarehouse} activeZone={activeZone} setActiveZone={setActiveZone} selectedOutboundAssign={selectedOutboundAssign} setSelectedOutboundAssign={setSelectedOutboundAssign} handleAutoAssignOutbound={handleAutoAssignOutbound} handleRequestRemoveOutboundAssign={handleRequestRemoveOutboundAssign} handleAddOutboundList={handleAddOutboundList} handleShelfClickOutbound={handleShelfClickOutbound} handlePickAllFound={handlePickAllFound}/>}
+        {currentView==='map'&&<WarehouseMap t={t} lang={lang} currentView="map" shelves={shelves} activeWarehouse={activeWarehouse} setActiveWarehouse={setActiveWarehouse} activeZone={activeZone} setActiveZone={setActiveZone} mapZoom={mapZoom} setMapZoom={setMapZoom}/>}
+        <ZebraTool t={t} currentUser={currentUser} lang={lang}/>
       </div>
     </div>
   );
