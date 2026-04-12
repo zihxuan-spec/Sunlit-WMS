@@ -75,8 +75,8 @@ const DOT_COLORS = {
 export default function Navbar({ currentUser, userRole, handleLogout, lang, setLang, currentView, setCurrentView, t, theme, toggleTheme, realtimeOk }) {
   const visibleGroups = NAV_GROUPS.filter(g => g.roles.includes(userRole));
 
-  // Mobile tab items: flatten all visible items, max 5
-  const mobileItems = visibleGroups.flatMap(g => g.items).slice(0, 5);
+  // All visible items for mobile — no limit
+  const mobileItems = visibleGroups.flatMap(g => g.items);
 
   const roleClass = { Admin: 'role-admin', Warehouse: 'role-warehouse', Production: 'role-prod' }[userRole] || 'role-warehouse';
 
@@ -142,34 +142,42 @@ export default function Navbar({ currentUser, userRole, handleLogout, lang, setL
           <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--lt-text)' }}>Sunlit WMS</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
-          <button style={{ background: 'transparent', border: 'none', fontSize: 13, color: 'var(--lt-text-2)', cursor: 'pointer' }}
-            onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}>
-            {lang === 'zh' ? 'EN' : '中'}
-          </button>
-          <div className="mobile-user">{currentUser}</div>
+          <span style={{ fontSize: 12, color: 'var(--lt-text-3)' }}>{currentUser}</span>
+          <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 10,
+            background: userRole === 'Admin' ? '#fce7e7' : userRole === 'Warehouse' ? '#fef3c7' : '#ede9fe',
+            color: userRole === 'Admin' ? '#dc2626' : userRole === 'Warehouse' ? '#d97706' : '#7c3aed' }}>
+            {userRole}
+          </span>
         </div>
       </div>
 
-      {/* ── Mobile bottom tabbar ── */}
-      <div className="bottom-tabbar" style={{ display: 'none' }}>
-        {mobileItems.map(item => (
-          <button key={item.key} className={`tab-btn ${currentView === item.key ? 'active' : ''}`}
-            onClick={() => setCurrentView(item.key)}>
-            <div className="tab-icon-wrap" style={{ fontSize: 10, fontWeight: 700 }}>
-              {item.key === 'dashboard' ? 'RPT' :
-               item.key === 'production_record' ? 'REC' :
-               item.key === 'inbound' ? 'IN' :
-               item.key === 'turnover' ? 'TV' :
-               item.key === 'outbound' ? 'OUT' :
-               item.key === 'map' ? 'MAP' :
-               item.key === 'mes' ? 'MES' :
-               item.key === 'reusable' ? 'RCY' :
-               item.key === 'zebra' ? 'ZBR' :
-               item.key === 'sparepart' ? 'SP' : ''}
-            </div>
-            <span className="tab-label">{item.label[lang] || item.label.en}</span>
-          </button>
+      {/* ── Mobile side nav (iPad) — shows all pages, scrollable ── */}
+      <div className="mobile-sidenav" style={{ display: 'none' }}>
+        {visibleGroups.map(group => (
+          <React.Fragment key={group.key}>
+            <div className="mobile-nav-section" style={{ color: group.color }}>{group.label}</div>
+            {group.items.map(item => (
+              <button key={item.key}
+                className={`mobile-nav-item ${currentView === item.key ? 'active' : ''}`}
+                onClick={() => setCurrentView(item.key)}>
+                <div className="mobile-nav-dot" style={{ background: DOT_COLORS[item.key] || group.color }} />
+                {item.label[lang] || item.label.en}
+              </button>
+            ))}
+          </React.Fragment>
         ))}
+        <div className="mobile-nav-footer">
+          <button className="mobile-nav-item" style={{ color: 'var(--lt-text-3)' }}
+            onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}>
+            <div className="mobile-nav-dot" style={{ background: 'var(--lt-text-4)' }} />
+            {lang === 'zh' ? 'Switch to English' : '切換中文'}
+          </button>
+          <button className="mobile-nav-item" style={{ color: '#ef4444' }}
+            onClick={handleLogout}>
+            <div className="mobile-nav-dot" style={{ background: '#ef4444' }} />
+            {lang === 'zh' ? '登出' : 'Sign Out'}
+          </button>
+        </div>
       </div>
     </>
   );
