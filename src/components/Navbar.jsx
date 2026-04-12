@@ -72,7 +72,7 @@ const DOT_COLORS = {
   admin:'#e11d48',
 };
 
-export default function Navbar({ currentUser, userRole, handleLogout, lang, setLang, currentView, setCurrentView, t, theme, toggleTheme, realtimeOk }) {
+export default function Navbar({ currentUser, userRole, handleLogout, lang, setLang, currentView, setCurrentView, t, realtimeOk }) {
   const visibleGroups = NAV_GROUPS.filter(g => g.roles.includes(userRole));
 
   // All visible items for mobile — no limit
@@ -100,9 +100,7 @@ export default function Navbar({ currentUser, userRole, handleLogout, lang, setL
           <button className="btn btn-ghost btn-sm" onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}>
             {lang === 'zh' ? 'EN' : '中文'}
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={toggleTheme} style={{ fontSize: 13, padding: '5px 10px' }}>
-            {theme === 'dark' ? 'LT' : 'DK'}
-          </button>
+
           <button className="btn btn-ghost btn-sm" style={{ color: '#ef4444', borderColor: '#ef444433' }} onClick={handleLogout}>
             {t.logout}
           </button>
