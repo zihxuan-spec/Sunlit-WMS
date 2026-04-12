@@ -43,7 +43,7 @@ export default function Dashboard({ t, lang, shelves, turnoverItems, inProductio
   const SectionHeader = ({ color, label }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
       <div style={{ width: 3, height: 18, background: color, borderRadius: 2 }} />
-      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--dk-text-2)', textTransform: 'uppercase', letterSpacing: '.5px' }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px' }} className="section-label">{label}</span>
     </div>
   );
 
@@ -51,7 +51,7 @@ export default function Dashboard({ t, lang, shelves, turnoverItems, inProductio
     <div className="dashboard-grid">
       <div className="stat-card">
         <h3>{t.capUsed} / {t.capTotal}</h3>
-        <div className="num" style={{ color: 'var(--dk-accent)' }}>{used} / {total}</div>
+        <div className="num blue">{used} / {total}</div>
       </div>
       <div className="stat-card">
         <h3>{t.dashUsedPct}</h3>
@@ -100,7 +100,7 @@ export default function Dashboard({ t, lang, shelves, turnoverItems, inProductio
         <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
           <div className="stat-card">
             <h3>{t.dashTurnoverItems}</h3>
-            <div className="num" style={{ color: 'var(--dk-text-2)' }}>{turnoverRaw}</div>
+            <div className="num">{turnoverRaw}</div>
           </div>
           <div className="stat-card">
             <h3>{lang === 'zh' ? '待生產' : 'Pending MES'}</h3>
