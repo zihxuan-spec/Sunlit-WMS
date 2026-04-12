@@ -92,7 +92,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
     setRecentHist((hist||[]).slice(0,15));
     setTop5(Object.entries(moveCount).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([pn,cnt])=>({pn,cnt})));
     setDeadStock(Object.values(invMap).filter(i=>i.stock>0&&!moveCount[i.part_number]).sort((a,b)=>b.stock-a.stock).slice(0,8));
-    const textColor = getComputedStyle(document.documentElement).getPropertyValue('--dk-text-3').trim()||'#64748b';
+    const textColor = '#9ca3af'; // fixed light mode color
     setTimeout(()=>{
       
       if(healthInst.current) healthInst.current.destroy();
