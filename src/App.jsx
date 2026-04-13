@@ -281,7 +281,7 @@ export default function App() {
     beep();setOutboundPending([]);fetchTurnover();showAlert(t.msgAutoSuccess);
   };
   const handleLogout = async () => { await supabase.auth.signOut(); };
-  useEffect(()=>{if(['QC','Facility'].includes(userRole)&&currentView!=='sparepart')setCurrentView('sparepart');},[userRole]);
+  useEffect(()=>{if(['QC','Facility'].includes(userRole)&&currentView!=='sparepart')setCurrentView('sparepart');},[userRole]); // Production can browse freely
 
   if (!authReady) return (
     <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'#f2f2f7',gap:14}}>
@@ -302,7 +302,7 @@ export default function App() {
       <div className="main-content">
         {currentView==='production_record'&&<ProductionRecord t={t} lang={lang}/>}
         {currentView==='admin'&&userRole==='Admin'&&<Admin lang={lang} showAlert={showAlert} showConfirm={showConfirm} currentUser={currentUser}/>}
-        {currentView==='sparepart'&&['Admin','QC','Facility'].includes(userRole)&&<SparePart lang={lang} currentUser={currentUser} userRole={userRole} showAlert={showAlert} showConfirm={showConfirm}/>}
+        {currentView==='sparepart'&&['Admin','QC','Facility','Production'].includes(userRole)&&<SparePart lang={lang} currentUser={currentUser} userRole={userRole} showAlert={showAlert} showConfirm={showConfirm}/>}
         {currentView==='dashboard'&&<Dashboard t={t} lang={lang} shelves={shelves} turnoverItems={turnoverItems} inProductionCount={inProductionCount} showAlert={showAlert} onRefresh={async()=>{await fetchShelves();await fetchTurnover();}}/>}
         {currentView==='zebra'&&<ZebraScanner t={t} currentUser={currentUser}/>}
         {currentView==='reusable'&&<ReusableTracking t={t} lang={lang} showAlert={showAlert}/>}
