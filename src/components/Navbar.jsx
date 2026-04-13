@@ -37,7 +37,7 @@ const NAV_GROUPS = [
   {
     key: 'sparepart',
     label: 'Spare Part',
-    color: '#7c3aed',
+    color: '#0d9488',
     roles: ['Admin', 'QC', 'Facility', 'Production'],
     items: [
       { key: 'sparepart', label: { en: 'Spare Part Mgmt', zh: '備品管理' } },
@@ -68,7 +68,7 @@ const DOT_COLORS = {
   inbound:'#f59e0b', turnover:'#f59e0b', outbound:'#f59e0b', map:'#f59e0b',
   mes:'#8b5cf6', reusable:'#8b5cf6',
   zebra:'#14b8a6',
-  sparepart:'#7c3aed',
+  sparepart:'#0d9488',
   admin:'#e11d48',
 };
 
