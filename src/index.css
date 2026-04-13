@@ -160,7 +160,9 @@ body {
 }
 .role-admin    { background: #1e3a5f; color: #60a5fa; }
 .role-warehouse{ background: #fef3c7; color: #d97706; }
-.role-prod     { background: var(--dk-purple-bg); color: #a78bfa; }
+.role-prod     { background: #ede9fe; color: #7c3aed; }
+.role-qc       { background: #fef3c7; color: #b45309; }
+.role-facility { background: #d1fae5; color: #065f46; }
 
 /* ── Sidebar ── */
 .sidebar {
@@ -246,7 +248,7 @@ body {
 .page-title {
   font-size: 17px;
   font-weight: 700;
-  color: var(--lt-text);
+  color: #1e293b;
 }
 .page-subtitle {
   font-size: 12px;
@@ -587,7 +589,7 @@ input::placeholder, textarea::placeholder { color: var(--dk-text-4); }
   background: transparent;
   color: var(--dk-text-3);
 }
-.zone-tab.active { background: var(--dk-surface2); color: var(--dk-text); border-color: var(--dk-border); }
+.zone-tab.active { background: #eff6ff; color: var(--lt-accent); border-color: var(--lt-accent); font-weight: 700; }
 .warehouse-floor {
   background: #e8edf2;
   border: 1px solid var(--lt-border);
