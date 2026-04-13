@@ -21,6 +21,7 @@ const TABS = [
   { key: 'guns',       label: { en: 'Gun Stations',    zh: '槍號設定' }, icon: '⊕' },
   { key: 'shelves',    label: { en: 'Shelf Layout',    zh: '貨架設定' }, icon: '⊞' },
   { key: 'spmaster',   label: { en: 'SP Master Data',  zh: '備品主檔' }, icon: '◈' },
+  { key: 'spdepts',    label: { en: 'SP Departments',  zh: '備品部門' }, icon: '◫' },
 ];
 
 export default function Admin({ lang, showAlert, showConfirm, currentUser }) {
@@ -59,6 +60,7 @@ export default function Admin({ lang, showAlert, showConfirm, currentUser }) {
       {tab === 'guns'       && <GunsTab       lang={lang} L={L} showAlert={showAlert} showConfirm={showConfirm} />}
       {tab === 'shelves'    && <ShelvesTab    lang={lang} L={L} showAlert={showAlert} showConfirm={showConfirm} />}
       {tab === 'spmaster'   && <SpMasterTab   lang={lang} L={L} showAlert={showAlert} showConfirm={showConfirm} />}
+      {tab === 'spdepts'    && <SpDepartmentsTab lang={lang} L={L} showAlert={showAlert} showConfirm={showConfirm} />}
     </div>
   );
 }
@@ -918,6 +920,103 @@ function SpMasterTab({ lang, L, showAlert, showConfirm }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════
+// SP Departments Tab — Admin can add/remove departments
+// ════════════════════════════════════════════════════════════
+function SpDepartmentsTab({ lang, L, showAlert, showConfirm }) {
+  const [depts, setDepts] = useState([]);
+  const [newName, setNewName] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const fetchDepts = async () => {
+    setLoading(true);
+    const { data } = await supabase.from('sp_departments').select('*').order('sort_order');
+    setDepts(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchDepts(); }, []);
+
+  const addDept = async () => {
+    const name = newName.trim();
+    if (!name) { showAlert(L('Enter department name', '請輸入部門名稱')); return; }
+    const maxOrder = depts.length ? Math.max(...depts.map(d => d.sort_order)) : 0;
+    const { error } = await supabase.from('sp_departments').insert({ name, sort_order: maxOrder + 1 });
+    if (error) { showAlert(error.message); return; }
+    setNewName(''); fetchDepts();
+  };
+
+  const toggleActive = async (dept) => {
+    await supabase.from('sp_departments').update({ active: !dept.active }).eq('id', dept.id);
+    fetchDepts();
+  };
+
+  const deleteDept = (dept) => showConfirm(
+    L(`Delete "${dept.name}"?`, `確定刪除「${dept.name}」？`),
+    async () => {
+      await supabase.from('sp_departments').delete().eq('id', dept.id);
+      fetchDepts();
+    }
+  );
+
+  return (
+    <div>
+      <div style={{ marginBottom: 16, display: 'flex', gap: 8, alignItems: 'center' }}>
+        <input
+          value={newName} onChange={e => setNewName(e.target.value)}
+          placeholder={L('New department name...', '新部門名稱...')}
+          style={{ flex: 1, maxWidth: 280, fontSize: 13, margin: 0 }}
+          onKeyDown={e => e.key === 'Enter' && addDept()}
+        />
+        <button className="btn btn-primary btn-sm" onClick={addDept}>
+          + {L('Add', '新增')}
+        </button>
+      </div>
+
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        {loading ? (
+          <div style={{ padding: 24, textAlign: 'center', fontSize: 13, color: 'var(--dk-text-3)' }}>{L('Loading...', '載入中...')}</div>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: 'var(--dk-surface2)' }}>
+                <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: 'var(--dk-text-3)', textTransform: 'uppercase' }}>{L('Department', '部門名稱')}</th>
+                <th style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 600, fontSize: 11, color: 'var(--dk-text-3)', textTransform: 'uppercase' }}>{L('Status', '狀態')}</th>
+                <th style={{ padding: '10px 16px', width: 120 }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {depts.map(dept => (
+                <tr key={dept.id}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--dk-surface2)'}
+                  onMouseLeave={e => e.currentTarget.style.background = ''}>
+                  <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--dk-text)' }}>{dept.name}</td>
+                  <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                    <span className={`badge ${dept.active ? 'badge-green' : 'badge-gray'}`}>
+                      {dept.active ? L('Active', '啟用') : L('Disabled', '停用')}
+                    </span>
+                  </td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => toggleActive(dept)}>
+                        {dept.active ? L('Disable', '停用') : L('Enable', '啟用')}
+                      </button>
+                      <button className="btn btn-ghost btn-sm" style={{ color: 'var(--dk-danger)' }} onClick={() => deleteDept(dept)}>✕</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {!depts.length && (
+                <tr><td colSpan={3} style={{ padding: 24, textAlign: 'center', color: 'var(--dk-text-3)' }}>{L('No departments', '尚無部門')}</td></tr>
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }
