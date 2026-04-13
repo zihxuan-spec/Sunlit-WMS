@@ -115,6 +115,47 @@ export default function App() {
     return () => { subscription.unsubscribe(); clearTimeout(fallback); };
   }, [applySession, resetState]);
 
+  // ── Auto logout: idle 30min OR session max 30min ────────────
+  const IDLE_LIMIT = 30 * 60 * 1000;   // 30 minutes idle
+  const MAX_LIMIT  = 30 * 60 * 1000;   // 30 minutes max session
+
+  const idleTimer   = useRef(null);
+  const sessionTimer = useRef(null);
+
+  const doAutoLogout = useCallback(async (reason) => {
+    console.info(`[WMS] Auto logout: ${reason}`);
+    clearTimeout(idleTimer.current);
+    clearTimeout(sessionTimer.current);
+    await supabase.auth.signOut();
+  }, []);
+
+  const resetIdleTimer = useCallback(() => {
+    clearTimeout(idleTimer.current);
+    idleTimer.current = setTimeout(() => doAutoLogout('idle 30min'), IDLE_LIMIT);
+  }, [doAutoLogout]);
+
+  // Start timers when user logs in, clear when they log out
+  useEffect(() => {
+    if (!currentUser) {
+      clearTimeout(idleTimer.current);
+      clearTimeout(sessionTimer.current);
+      return;
+    }
+    // Idle timer — reset on any interaction
+    resetIdleTimer();
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+    events.forEach(e => window.addEventListener(e, resetIdleTimer, { passive: true }));
+
+    // Absolute session timer — fires regardless of activity
+    sessionTimer.current = setTimeout(() => doAutoLogout('session 30min'), MAX_LIMIT);
+
+    return () => {
+      events.forEach(e => window.removeEventListener(e, resetIdleTimer));
+      clearTimeout(idleTimer.current);
+      clearTimeout(sessionTimer.current);
+    };
+  }, [currentUser, resetIdleTimer, doAutoLogout]);
+
   const t = dict[lang];
   const showAlert   = (msg) => setModal({ isOpen: true, type: 'alert', title: t.modalAlert, msg, onConfirm: null, btnConfirm: t.btnClose });
   const showConfirm = (msg, onConfirm) => setModal({ isOpen: true, type: 'confirm', title: t.modalConfirm, msg, onConfirm, btnConfirm: t.btnConfirm });
