@@ -75,22 +75,32 @@ export default function App() {
     setShelvesLoading(true);
   }, []);
 
+  // Track active user ID to detect real account switches vs token refreshes
+  const activeUidRef = useRef(null);
+
   const applySession = useCallback((session) => {
     if (!session?.user) return;
-    // Step 1: Reset everything first (prevents flash of prev user's view)
-    resetState();
+    const uid = session.user.id;
+    const isSameUser = activeUidRef.current === uid;
+
+    if (!isSameUser) {
+      // Different user — clear previous user's data and view
+      activeUidRef.current = uid;
+      resetState();
+    }
+
     const fallbackName = (session.user.email || '').split('@')[0] || 'User';
-    // Step 2: Set new user with fallback immediately
     setCurrentUser(fallbackName);
-    setUserRole('Warehouse');
-    // Step 3: Enrich from profiles in background — also sets correct view for role
-    supabase.from('profiles').select('name, role').eq('id', session.user.id).single()
+
+    supabase.from('profiles').select('name, role').eq('id', uid).single()
       .then(({ data }) => {
         if (data?.name) setCurrentUser(data.name);
         if (data?.role) {
           setUserRole(data.role);
-          // Redirect QC/Facility to sparepart immediately on login
-          if (['QC', 'Facility'].includes(data.role)) setCurrentView('sparepart');
+          // Only redirect on first login, not on page refresh/token refresh
+          if (!isSameUser && ['QC', 'Facility'].includes(data.role)) {
+            setCurrentView('sparepart');
+          }
         }
       })
       .catch(() => {});
