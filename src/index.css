@@ -646,20 +646,27 @@ input::placeholder, textarea::placeholder { color: var(--dk-text-4); }
 /* ── Pending items (desktop) ── */
 .pending-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .pending-item {
-  padding: 6px 10px;
-  background: var(--dk-warn-bg);
-  border: 1px solid var(--dk-warn);
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid var(--lt-border);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  font-weight: 600;
-  font-size: 11px;
-  color: #fbbf24;
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--lt-text);
   display: flex;
   align-items: center;
   gap: 7px;
-  transition: background .1s;
+  transition: background .12s, border-color .12s, box-shadow .12s;
 }
-.pending-item.selected { background: var(--dk-warn); color: #1c1206; }
+.pending-item:hover { background: #f0f7ff; border-color: #93c5fd; }
+.pending-item.selected {
+  background: #dbeafe;
+  border-color: var(--lt-accent);
+  color: var(--lt-accent);
+  box-shadow: 0 0 0 2px #bfdbfe;
+  font-weight: 700;
+}
 .delete-btn {
   width: 18px; height: 18px;
   border-radius: 50%;
@@ -669,17 +676,19 @@ input::placeholder, textarea::placeholder { color: var(--dk-text-4); }
   transition: background .1s; flex-shrink: 0;
 }
 .delete-btn:hover { background: var(--dk-danger); color: #fff; }
-.pending-item.selected .delete-btn { background: rgba(0,0,0,.2); color: #1c1206; }
+.pending-item.selected .delete-btn { background: #bfdbfe; color: var(--lt-accent); }
 
 /* ── Outbound items ── */
 .outbound-item {
   display: flex; align-items: flex-start; gap: 10px;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--dk-surface2);
+  border-bottom: 1px solid var(--lt-border);
   position: relative; font-size: 12px;
+  background: #fff;
 }
+.outbound-item:last-child { border-bottom: none; }
 .outbound-content { display: flex; flex-direction: column; flex-grow: 1; word-break: break-all; }
-.outbound-loc { font-size: 10px; color: var(--dk-text-4); margin-top: 2px; }
+.outbound-loc { font-size: 11px; color: var(--lt-text-2); margin-top: 2px; font-weight: 500; }
 .outbound-not-found {
   display: flex; align-items: center; gap: 8px;
   padding: 7px 12px;
@@ -1048,6 +1057,7 @@ html.light .list-row.selected { background: #e8f4ff; }
 
 /* ── Pending items (Inbound/Outbound) ── */
 html.light .pending-item { background: #fff; border-color: var(--lt-border); color: var(--lt-text); }
+html.light .pending-item.selected { background: #dbeafe; border-color: var(--lt-accent); color: var(--lt-accent); box-shadow: 0 0 0 2px #bfdbfe; }
 
 /* ── Kanban ── */
 html.light .kanban-item  { background: #fff; border-color: var(--lt-border); }
