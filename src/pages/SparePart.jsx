@@ -246,7 +246,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
         {isAdmin&&(
           <select value={adminDept} onChange={e=>setAdminDept(e.target.value)} style={{fontSize:12,padding:'5px 10px',alignSelf:'flex-start'}}>
             <option value="All">{L('All Depts','全部')}</option>
-            {DEPARTMENTS.map(d=><option key={d} value={d}>{d}</option>)}
+            {departments.map(d=><option key={d} value={d}>{d}</option>)}
           </select>
         )}
       </div>
@@ -521,7 +521,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
             <label style={lbl}>{L('Department *','部門 *')}</label>
             <select value={masterForm.department} onChange={e=>setMasterForm(f=>({...f,department:e.target.value}))} style={{width:'100%',boxSizing:'border-box'}}>
               <option value="">{L('Select...','選擇...')}</option>
-              {DEPARTMENTS.map(d=><option key={d} value={d}>{d}</option>)}
+              {departments.map(d=><option key={d} value={d}>{d}</option>)}
             </select>
           </div>
         </div>
