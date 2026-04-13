@@ -111,7 +111,17 @@ function ContainersTab({ lang, L, showAlert, showConfirm }) {
     const idx = steps.findIndex(s=>s.id===step.id), swapIdx=idx+dir;
     if (swapIdx<0||swapIdx>=steps.length) return;
     const a=steps[idx], b=steps[swapIdx];
-    await Promise.all([supabase.from('process_step_templates').update({step_order:b.step_order}).eq('id',a.id), supabase.from('process_step_templates').update({step_order:a.step_order}).eq('id',b.id)]);
+    // Optimistic UI update first — feels instant
+    const newSteps = [...steps];
+    newSteps[idx] = {...a, step_order: b.step_order};
+    newSteps[swapIdx] = {...b, step_order: a.step_order};
+    newSteps.sort((x,y)=>x.step_order-y.step_order);
+    setSteps(newSteps);
+    // Use a temp step_order (99999) to avoid unique constraint collision during swap
+    const tmp = 99999;
+    await supabase.from('process_step_templates').update({step_order: tmp}).eq('id', a.id);
+    await supabase.from('process_step_templates').update({step_order: a.step_order}).eq('id', b.id);
+    await supabase.from('process_step_templates').update({step_order: b.step_order}).eq('id', a.id);
     fetchSteps(selectedCT.id);
   };
 
