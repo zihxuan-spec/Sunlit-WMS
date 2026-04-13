@@ -22,7 +22,9 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [userRole, setUserRole] = useState('Warehouse');
   const [authReady, setAuthReady] = useState(false);
-  const [currentView, setCurrentView] = useState('dashboard');
+  const [currentView, setCurrentView] = useState(
+    () => sessionStorage.getItem('wms_view') || 'dashboard'
+  );
   const [modal, setModal] = useState({ isOpen: false, type: 'alert', title: '', msg: '', onConfirm: null, onAltConfirm: null, btnConfirm: '', btnAlt: '', btnCancel: '' });
   const [shelves, setShelves] = useState([]);
   const [turnoverItems, setTurnoverItems] = useState([]);
@@ -48,7 +50,10 @@ export default function App() {
   const pendingItemsRef = useRef(pendingItems);
   const outPendingRef = useRef(outboundPending);
   const outAssignRef = useRef(outboundAssignItems);
-  useEffect(() => { viewRef.current = currentView; }, [currentView]);
+  useEffect(() => {
+    viewRef.current = currentView;
+    sessionStorage.setItem('wms_view', currentView);
+  }, [currentView]);
   useEffect(() => { shelvesRef.current = shelves; }, [shelves]);
   useEffect(() => { turnoverRef.current = turnoverItems; }, [turnoverItems]);
   useEffect(() => { pendingItemsRef.current = pendingItems; }, [pendingItems]);
@@ -59,10 +64,13 @@ export default function App() {
   useEffect(() => { document.documentElement.classList.add('light'); }, []);
 
   // Reset ALL state to blank before applying new session — prevents previous user's UI flash
-  const resetState = useCallback(() => {
+  const resetState = useCallback((clearView = true) => {
     setCurrentUser(null);
     setUserRole('Warehouse');
-    setCurrentView('dashboard');
+    if (clearView) {
+      setCurrentView('dashboard');
+      sessionStorage.removeItem('wms_view');
+    }
     setShelves([]);
     setTurnoverItems([]);
     setPendingItemsState([]);
@@ -118,6 +126,7 @@ export default function App() {
         setAuthReady(true);
       } else if (event === 'SIGNED_OUT') {
         sessionStorage.removeItem('wms_uid');
+        sessionStorage.removeItem('wms_view');
         resetState();
         setAuthReady(false);
         setTimeout(() => setAuthReady(true), 100);
