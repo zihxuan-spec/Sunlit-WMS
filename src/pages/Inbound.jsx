@@ -103,12 +103,12 @@ export default function Inbound({
           </div>
           <div className="pending-list" style={{ marginTop: 10 }}>
             {inboundTransferSelected.map((shelf, idx) => (
-              <div key={idx} className="outbound-item" style={{ borderColor: 'var(--dk-warn)' }}>
+              <div key={idx} className="outbound-item" style={{ borderColor: '#fbbf24', background: '#fffbeb', borderLeft: '3px solid #f59e0b' }}>
                 <div className="outbound-content">
-                  <div style={{ fontFamily: 'monospace', fontSize: 12 }}>{shelf.product_barcode}</div>
-                  <div className="outbound-loc">{shelf.id}</div>
+                  <div style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: '#92400e' }}>{shelf.product_barcode}</div>
+                  <div className="outbound-loc" style={{ color: '#b45309' }}>{shelf.id}</div>
                 </div>
-                <div className="delete-btn" onClick={() => setInboundTransferSelected(p => p.filter(x => x.id !== shelf.id))}>x</div>
+                <div className="delete-btn" onClick={() => setInboundTransferSelected(p => p.filter(x => x.id !== shelf.id))}>×</div>
               </div>
             ))}
           </div>
