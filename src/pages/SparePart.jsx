@@ -218,7 +218,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
   const invPages=Math.ceil(invTotal/PAGE_SIZE)||1;
   const masterPages=Math.ceil(masterTotal/PAGE_SIZE)||1;
   const fmtDate=(d)=>new Date(d).toLocaleString(lang==='zh'?'zh-TW':'en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-  const deptBadge=(d)=>d==='QC'?<span className="badge badge-blue">{d}</span>:<span className="badge badge-purple">{d}</span>;
+  const deptBadge=(d)=>d==='QC'?<span className="badge badge-amber">{d}</span>:d==='Facility'?<span className="badge badge-green" style={{background:'#d1fae5',color:'#065f46'}}>{d}</span>:<span className="badge badge-gray">{d}</span>;
   const statusBadge=(item)=>item.is_critical?<span className="badge badge-red">{L('Critical','缺料')}</span>:item.is_low?<span className="badge badge-amber">{L('Low','低庫存')}</span>:<span className="badge badge-green">{L('OK','正常')}</span>;
 
   const lbl={fontSize:12,fontWeight:600,color:'var(--dk-text-3)',display:'block',marginBottom:4};
@@ -236,7 +236,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
           <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
             <button className="btn btn-primary btn-sm" onClick={()=>openTx('receive')}>＋ {L('Goods Receipt','收貨入庫')}</button>
             <button className="btn btn-danger btn-sm" onClick={()=>openTx('issue')}>－ {L('Goods Issue','發貨領料')}</button>
-            {isAdmin&&<button className="btn btn-ghost btn-sm" onClick={openCreate}>+ {L('New Part','新增物料')}</button>}
+
           </div>
         </div>
         {isAdmin&&(
