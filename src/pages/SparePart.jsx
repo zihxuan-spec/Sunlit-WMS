@@ -3,7 +3,7 @@ import { spareSupabase as supabase } from '../config/spareClient';
 import Chart from 'chart.js/auto';
 
 const PAGE_SIZE = 50;
-const DEPARTMENTS = ['QC', 'Facility', 'Production'];
+const DEPARTMENTS = ['QC', 'Facility'];
 
 export default function SparePart({ lang, currentUser, userRole, showAlert, showConfirm }) {
   const [tab, setTab] = useState('dashboard');
@@ -139,7 +139,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
   };
 
   const submitTx=async()=>{
-    if(!txRef.trim()){showAlert(L('Fill in PO/Reference','請填寫單號'));return;}
+    if(!txRef.trim()||!txUser.trim()){showAlert(L('Fill in reference and operator','請填寫單號與操作人員'));return;}
     const items=[];
     for(let i=0;i<txRows.length;i++){
       const r=txRows[i];
@@ -421,7 +421,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
         </div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:14}}>
           <div><label style={lbl}>{L('PO / Reference *','單號/用途 *')}</label><input value={txRef} onChange={e=>setTxRef(e.target.value)} style={{width:'100%',boxSizing:'border-box'}}/></div>
-          <div><label style={lbl}>{L('Operator','操作人員')}</label><input value={txUser} readOnly style={{width:'100%',boxSizing:'border-box',background:'#f9fafb',color:'#6b7280',cursor:'default'}}/></div>
+          <div><label style={lbl}>{L('Operator *','操作人員 *')}</label><input value={txUser} onChange={e=>setTxUser(e.target.value)} style={{width:'100%',boxSizing:'border-box'}}/></div>
           <div><label style={lbl}>{L('Date','日期')}</label><input type="date" defaultValue={new Date().toISOString().split('T')[0]} readOnly style={{width:'100%',boxSizing:'border-box',background:'#f9fafb'}}/></div>
         </div>
         <div style={{overflowX:'auto'}}>
