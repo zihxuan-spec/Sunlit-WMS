@@ -158,7 +158,7 @@ export default function ProductionRecord({ t, lang }) {
                 <tr>
                   <th>{lang === 'zh' ? '批號' : 'Batch No.'}</th>
                   <th>{lang === 'zh' ? '物料' : 'Material'}</th>
-                  <th>{lang === 'zh' ? '桶數' : 'Drums'}</th>
+                  <th>{lang === 'zh' ? '桶數' : 'Quantity'}</th>
                   <th>{lang === 'zh' ? '客戶' : 'Customer'}</th>
                   <th>{lang === 'zh' ? '狀態' : 'Status'}</th>
                   <th>{lang === 'zh' ? '操作員' : 'Operator'}</th>
