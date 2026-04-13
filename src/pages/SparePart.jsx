@@ -228,22 +228,26 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
   return (
     <div>
       <div className="page-header">
-        <div>
-          <div className="page-title">{L('Spare Part Management','備品管理')}</div>
-          <div className="page-subtitle">{L('Inventory · Transactions · Analytics','庫存 · 交易 · 分析')}</div>
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          <div>
+            <div className="page-title">{L('Spare Part Management','備品管理')}</div>
+            <div className="page-subtitle">{L('Inventory · Transactions · Analytics','庫存 · 交易 · 分析')}</div>
+          </div>
+          <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+            <button className="btn btn-primary btn-sm" onClick={()=>openTx('receive')}>＋ {L('Goods Receipt','收貨入庫')}</button>
+            <button className="btn btn-danger btn-sm" onClick={()=>openTx('issue')}>－ {L('Goods Issue','發貨領料')}</button>
+            {isAdmin&&<button className="btn btn-ghost btn-sm" onClick={openCreate}>+ {L('New Part','新增物料')}</button>}
+          </div>
         </div>
-        <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
-          {isAdmin&&<select value={adminDept} onChange={e=>setAdminDept(e.target.value)} style={{fontSize:12,padding:'5px 10px'}}>
+        {isAdmin&&(
+          <select value={adminDept} onChange={e=>setAdminDept(e.target.value)} style={{fontSize:12,padding:'5px 10px',alignSelf:'flex-start'}}>
             <option value="All">{L('All Depts','全部')}</option>
             {DEPARTMENTS.map(d=><option key={d} value={d}>{d}</option>)}
-          </select>}
-          <button className="btn btn-primary btn-sm" onClick={()=>openTx('receive')}>＋ {L('Goods Receipt','收貨入庫')}</button>
-          <button className="btn btn-danger btn-sm" onClick={()=>openTx('issue')}>－ {L('Goods Issue','發貨領料')}</button>
-
-        </div>
+          </select>
+        )}
       </div>
 
-      {/* Sub-tabs */}
+            {/* Sub-tabs */}
       <div style={{display:'flex',gap:0,borderBottom:'1px solid var(--border)',marginBottom:16}}>
         {[['dashboard',L('Dashboard','看板')],['inventory',L('Inventory','庫存')]]
           .map(([key,label])=>(
