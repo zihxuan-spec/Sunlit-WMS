@@ -283,7 +283,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))',gap:14,marginBottom:14}}>
           <div className="card">
-            <div className="card-title" style={{marginBottom:10}}>🔥 {L('Top 5 Moving (30d)','高消耗排行')}</div>
+            <div className="card-title" style={{marginBottom:10}}> {L('Top 5 Moving (30d)','高消耗排行')}</div>
             {top5.length?top5.map(({pn,cnt},i)=>(
               <div key={pn} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:'1px solid var(--border)'}}>
                 <div style={{width:22,height:22,borderRadius:'50%',background:'var(--dk-danger-bg)',color:'var(--dk-danger)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,flexShrink:0}}>{i+1}</div>
@@ -293,7 +293,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
             )):<div style={{fontSize:12,color:'var(--dk-text-3)',padding:'12px 0'}}>{L('No movements','無異動')}</div>}
           </div>
           <div className="card">
-            <div className="card-title" style={{marginBottom:10}}>💤 {L('Dead Stock (30d)','呆滯料預警')}</div>
+            <div className="card-title" style={{marginBottom:10}}> {L('Dead Stock (30d)','呆滯料預警')}</div>
             {deadStock.length?deadStock.map(d=>(
               <div key={d.part_number} style={{padding:'8px 0',borderBottom:'1px solid var(--border)'}}>
                 <div style={{display:'flex',justifyContent:'space-between'}}>
