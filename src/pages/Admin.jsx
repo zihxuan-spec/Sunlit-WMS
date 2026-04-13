@@ -819,6 +819,7 @@ function SpMasterTab({ lang, L, showAlert, showConfirm }) {
           <option value="All">{L('All Depts','全部')}</option>
           <option value="QC">QC</option>
           <option value="Facility">Facility</option>
+          <option value="Production">Production</option>
         </select>
         <button className="btn btn-primary btn-sm" onClick={openCreate} style={{ marginLeft:'auto' }}>
           + {L('New Part','新增物料')}
