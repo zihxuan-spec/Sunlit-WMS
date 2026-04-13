@@ -3,7 +3,7 @@ import { spareSupabase as supabase } from '../config/spareClient';
 import Chart from 'chart.js/auto';
 
 const PAGE_SIZE = 50;
-const DEPARTMENTS = ['QC', 'Facility'];
+const DEPARTMENTS = ['QC', 'Facility', 'Production'];
 
 export default function SparePart({ lang, currentUser, userRole, showAlert, showConfirm }) {
   const [tab, setTab] = useState('dashboard');
