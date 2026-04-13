@@ -81,13 +81,18 @@ export default function App() {
   const applySession = useCallback((session) => {
     if (!session?.user) return;
     const uid = session.user.id;
-    const isSameUser = activeUidRef.current === uid;
+
+    // Use sessionStorage to survive page refreshes — useRef resets to null on every reload
+    const prevUid = activeUidRef.current || sessionStorage.getItem('wms_uid');
+    const isSameUser = prevUid === uid;
 
     if (!isSameUser) {
-      // Different user — clear previous user's data and view
-      activeUidRef.current = uid;
+      // Genuinely different user — clear previous user's data and view
       resetState();
     }
+    // Always update the ref and sessionStorage with current uid
+    activeUidRef.current = uid;
+    sessionStorage.setItem('wms_uid', uid);
 
     const fallbackName = (session.user.email || '').split('@')[0] || 'User';
     setCurrentUser(fallbackName);
@@ -97,7 +102,7 @@ export default function App() {
         if (data?.name) setCurrentUser(data.name);
         if (data?.role) {
           setUserRole(data.role);
-          // Only redirect on first login, not on page refresh/token refresh
+          // Only redirect QC/Facility to sparepart on genuine first login
           if (!isSameUser && ['QC', 'Facility'].includes(data.role)) {
             setCurrentView('sparepart');
           }
@@ -112,9 +117,9 @@ export default function App() {
         applySession(session);
         setAuthReady(true);
       } else if (event === 'SIGNED_OUT') {
+        sessionStorage.removeItem('wms_uid');
         resetState();
         setAuthReady(false);
-        // Brief delay to show loading screen before login form (cleaner UX)
         setTimeout(() => setAuthReady(true), 100);
       }
     });
