@@ -58,20 +58,43 @@ export default function App() {
   // Always light mode
   useEffect(() => { document.documentElement.classList.add('light'); }, []);
 
-  // Apply user from session without extra API calls
+  // Reset ALL state to blank before applying new session — prevents previous user's UI flash
+  const resetState = useCallback(() => {
+    setCurrentUser(null);
+    setUserRole('Warehouse');
+    setCurrentView('dashboard');
+    setShelves([]);
+    setTurnoverItems([]);
+    setPendingItemsState([]);
+    setOutboundAssignItemsState([]);
+    setOutboundPending([]);
+    setOutboundNotFound([]);
+    setInboundTransferSelected([]);
+    setSelectedPending(null);
+    setSelectedOutboundAssign(null);
+    setShelvesLoading(true);
+  }, []);
+
   const applySession = useCallback((session) => {
     if (!session?.user) return;
+    // Step 1: Reset everything first (prevents flash of prev user's view)
+    resetState();
     const fallbackName = (session.user.email || '').split('@')[0] || 'User';
+    // Step 2: Set new user with fallback immediately
     setCurrentUser(fallbackName);
     setUserRole('Warehouse');
-    // Enrich from profiles in background
+    // Step 3: Enrich from profiles in background — also sets correct view for role
     supabase.from('profiles').select('name, role').eq('id', session.user.id).single()
       .then(({ data }) => {
         if (data?.name) setCurrentUser(data.name);
-        if (data?.role) setUserRole(data.role);
+        if (data?.role) {
+          setUserRole(data.role);
+          // Redirect QC/Facility to sparepart immediately on login
+          if (['QC', 'Facility'].includes(data.role)) setCurrentView('sparepart');
+        }
       })
       .catch(() => {});
-  }, []);
+  }, [resetState]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -79,8 +102,10 @@ export default function App() {
         applySession(session);
         setAuthReady(true);
       } else if (event === 'SIGNED_OUT') {
-        setCurrentUser(null); setUserRole('Warehouse'); setCurrentView('dashboard');
-        setPendingItemsState([]); setOutboundAssignItemsState([]);
+        resetState();
+        setAuthReady(false);
+        // Brief delay to show loading screen before login form (cleaner UX)
+        setTimeout(() => setAuthReady(true), 100);
       }
     });
     supabase.auth.getSession()
@@ -88,7 +113,7 @@ export default function App() {
       .catch(() => setAuthReady(true));
     const fallback = setTimeout(() => setAuthReady(true), 8000);
     return () => { subscription.unsubscribe(); clearTimeout(fallback); };
-  }, [applySession]);
+  }, [applySession, resetState]);
 
   const t = dict[lang];
   const showAlert   = (msg) => setModal({ isOpen: true, type: 'alert', title: t.modalAlert, msg, onConfirm: null, btnConfirm: t.btnClose });
@@ -281,7 +306,7 @@ export default function App() {
     beep();setOutboundPending([]);fetchTurnover();showAlert(t.msgAutoSuccess);
   };
   const handleLogout = async () => { await supabase.auth.signOut(); };
-  useEffect(()=>{if(['QC','Facility'].includes(userRole)&&currentView!=='sparepart')setCurrentView('sparepart');},[userRole]); // Production can browse freely
+  // QC/Facility redirect handled in applySession to avoid flash
 
   if (!authReady) return (
     <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'#f2f2f7',gap:14}}>
