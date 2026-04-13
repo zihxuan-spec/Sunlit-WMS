@@ -37,8 +37,8 @@ const NAV_GROUPS = [
   {
     key: 'sparepart',
     label: 'Spare Part',
-    color: '#0891b2',
-    roles: ['Admin', 'QC', 'Facility'],
+    color: '#7c3aed',
+    roles: ['Admin', 'QC', 'Facility', 'Production'],
     items: [
       { key: 'sparepart', label: { en: 'Spare Part Mgmt', zh: '備品管理' } },
     ],
@@ -68,7 +68,7 @@ const DOT_COLORS = {
   inbound:'#f59e0b', turnover:'#f59e0b', outbound:'#f59e0b', map:'#f59e0b',
   mes:'#8b5cf6', reusable:'#8b5cf6',
   zebra:'#14b8a6',
-  sparepart:'#0891b2',
+  sparepart:'#7c3aed',
   admin:'#e11d48',
 };
 
@@ -78,7 +78,7 @@ export default function Navbar({ currentUser, userRole, handleLogout, lang, setL
   // All visible items for mobile — no limit
   const mobileItems = visibleGroups.flatMap(g => g.items);
 
-  const roleClass = { Admin: 'role-admin', Warehouse: 'role-warehouse', Production: 'role-prod' }[userRole] || 'role-warehouse';
+  const roleClass = { Admin: 'role-admin', Warehouse: 'role-warehouse', Production: 'role-prod', QC: 'role-qc', Facility: 'role-facility' }[userRole] || 'role-warehouse';
 
   return (
     <>
