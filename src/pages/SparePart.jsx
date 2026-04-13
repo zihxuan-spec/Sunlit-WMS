@@ -3,12 +3,11 @@ import { spareSupabase as supabase } from '../config/spareClient';
 import Chart from 'chart.js/auto';
 
 const PAGE_SIZE = 50;
-const DEPARTMENTS = ['QC', 'Facility'];
-
 export default function SparePart({ lang, currentUser, userRole, showAlert, showConfirm }) {
   const [tab, setTab] = useState('dashboard');
   const [loading, setLoading] = useState(false);
   const [adminDept, setAdminDept] = useState('All');
+  const [departments, setDepartments] = useState(['QC', 'Facility', 'Production']); // loaded from DB
   const [inventory, setInventory] = useState([]);
   const [invTotal, setInvTotal] = useState(0);
   const [invPage, setInvPage] = useState(1);
@@ -48,7 +47,12 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
   const L = (en, zh) => lang === 'zh' ? zh : en;
   const applyDept = (q) => dept !== 'All' ? q.eq('department', dept) : q;
 
-  const fetchInventory = useCallback(async (reset = false) => {
+  const fetchDepartments = useCallback(async () => {
+    const { data } = await supabase.from('sp_departments').select('name').eq('active', true).order('sort_order');
+    if (data?.length) setDepartments(data.map(d => d.name));
+  }, []);
+
+    const fetchInventory = useCallback(async (reset = false) => {
     if (reset) setInvPage(1);
     setLoading(true);
     let q = applyDept(supabase.from('view_sp_inventory').select('*', { count:'exact' }));
@@ -104,7 +108,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
   }, [dept, lang]);
 
   useEffect(()=>{
-    fetchDashboard(); fetchInventory(true); if(isAdmin) fetchMaster(true);
+    fetchDepartments(); fetchDashboard(); fetchInventory(true); if(isAdmin) fetchMaster(true);
     const ch=supabase.channel('sp-rt')
       .on('postgres_changes',{event:'*',schema:'public',table:'sp_inventory'},()=>{fetchDashboard();fetchInventory();})
       .on('postgres_changes',{event:'*',schema:'public',table:'sp_history'},fetchDashboard)
@@ -139,7 +143,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
   };
 
   const submitTx=async()=>{
-    if(!txRef.trim()||!txUser.trim()){showAlert(L('Fill in reference and operator','請填寫單號與操作人員'));return;}
+    if(!txRef.trim()){showAlert(L('Fill in PO/Reference','請填寫單號'));return;}
     const items=[];
     for(let i=0;i<txRows.length;i++){
       const r=txRows[i];
@@ -421,7 +425,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
         </div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:14}}>
           <div><label style={lbl}>{L('PO / Reference *','單號/用途 *')}</label><input value={txRef} onChange={e=>setTxRef(e.target.value)} style={{width:'100%',boxSizing:'border-box'}}/></div>
-          <div><label style={lbl}>{L('Operator *','操作人員 *')}</label><input value={txUser} onChange={e=>setTxUser(e.target.value)} style={{width:'100%',boxSizing:'border-box'}}/></div>
+          <div><label style={lbl}>{L('Operator','操作人員')}</label><input value={txUser} readOnly style={{width:'100%',boxSizing:'border-box',background:'#f9fafb',color:'#6b7280',cursor:'default'}}/></div>
           <div><label style={lbl}>{L('Date','日期')}</label><input type="date" defaultValue={new Date().toISOString().split('T')[0]} readOnly style={{width:'100%',boxSizing:'border-box',background:'#f9fafb'}}/></div>
         </div>
         <div style={{overflowX:'auto'}}>
