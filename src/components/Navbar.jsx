@@ -90,10 +90,10 @@ export default function Navbar({ currentUser, userRole, handleLogout, lang, setL
             ? <img src="/logo.png" alt="Logo" style={{ height: 28, objectFit: 'contain', marginRight: 2 }} />
             : <div className="topbar-logo-mark">S</div>
           }
-          <span className="topbar-logo-name">Sunlit WMS</span>
+          <span className="topbar-logo-name">Sunlit AZ</span>
         </div>
         <div className="topbar-divider" />
-        <span className="topbar-env">Production</span>
+        <span className="topbar-env">Manufacturing Operations Management</span>
         <div className="topbar-right">
           <span className="topbar-user">{currentUser}</span>
           <span className={`topbar-role ${roleClass}`}>{userRole}</span>
