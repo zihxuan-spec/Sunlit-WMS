@@ -8,7 +8,26 @@ export default function ProductionRecord({ t, lang }) {
 
   useEffect(() => { fetchRecords(); }, []);
 
-  const fetchRecords = async () => {
+  const exportCSV = () => {
+    if (!filtered.length) return;
+    const headers = ['Batch No', 'Material', 'Customer', 'Status', 'Containers', 'Created', 'Shipped At'];
+    const rows = filtered.map(r => [
+      r.batch_no || '',
+      r.material_code || '',
+      r.customer || '',
+      r.status || '',
+      r.production_containers?.[0]?.count || 0,
+      r.created_at ? new Date(r.created_at).toLocaleDateString() : '',
+      r.shipped_at ? new Date(r.shipped_at).toLocaleDateString() : '',
+    ]);
+    const csv = '\uFEFF' + [headers, ...rows].map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    a.download = `ProductionRecord_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  };
+
+    const fetchRecords = async () => {
     setLoading(true);
     const { data } = await supabase
       .from('production_batches')
@@ -62,7 +81,10 @@ export default function ProductionRecord({ t, lang }) {
           <div className="page-title">{lang === 'zh' ? '生產記錄' : 'Production Record'}</div>
           <div className="page-subtitle">{lang === 'zh' ? '批次追蹤 · 出貨歷史 · 客戶分佈' : 'Batch tracking · Shipment history · Customer view'}</div>
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={fetchRecords}>{lang === 'zh' ? '重新整理' : 'Refresh'}</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-ghost btn-sm" onClick={fetchRecords}>{lang === 'zh' ? '重新整理' : 'Refresh'}</button>
+          <button className="btn btn-success btn-sm" onClick={exportCSV}>⬇ {lang === 'zh' ? '匯出 CSV' : 'Export CSV'}</button>
+        </div>
       </div>
 
       {/* Summary bar */}
