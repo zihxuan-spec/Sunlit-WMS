@@ -763,6 +763,7 @@ function SpMasterTab({ lang, L, showAlert, showConfirm }) {
                   <option value="">{L('Select...','選擇...')}</option>
                   <option value="QC">QC</option>
                   <option value="Facility">Facility</option>
+                  <option value="Production">Production</option>
                 </select>
               </div>
             </div>
