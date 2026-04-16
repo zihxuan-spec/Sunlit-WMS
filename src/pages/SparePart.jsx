@@ -154,6 +154,30 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
       if(txType==='receive'&&!r.loc.trim()){showAlert(L(`Row ${i+1}: location required`,`第${i+1}行需填儲位`));return;}
       items.push({id:r.id.trim(),qty:Number(r.qty),loc:r.loc.trim(),dept:dept!=='All'?dept:null});
     }
+    // Validate each part belongs to user's department
+    if(dept !== 'All'){
+      const pns = items.map(i=>i.id);
+      const{data:masterCheck}=await supabase.from('sp_master')
+        .select('part_number,departments')
+        .in('part_number',pns)
+        .eq('active',true);
+      const invalid = items.filter(i=>{
+        const m = masterCheck?.find(x=>x.part_number===i.id);
+        if(!m) return false; // part not found - RPC will catch it
+        return !Array.isArray(m.departments) || !m.departments.includes(dept);
+      });
+      if(invalid.length>0){
+        showAlert((lang==='zh'
+          ?`以下料號不屬於 ${dept} 部門，無法操作：
+`
+          :`These parts are not assigned to ${dept}:
+`)
+          + invalid.map(i=>i.id).join('
+'));
+        return;
+      }
+    }
+
     showConfirm(L('Post these transactions?','確定過帳？'),async()=>{
       setTxSubmitting(true);
       const txDept = dept !== 'All' ? dept : null;
