@@ -365,7 +365,21 @@ export default function App() {
     await Promise.all(outboundPending.map(s=>supabase.from('shelves').update({status:'empty',product_barcode:null,batch_no:null,batch_date:null,last_updated_by:currentUser}).eq('id',s.id)));
     await writeHistory(outboundPending.map(s=>({shelf_id:s.id,action:'outbound_customer',product_barcode:s.product_barcode,batch_no:s.batch_no,operator:currentUser})));
     const recyclable=outboundPending.filter(s=>getContainerTypeByBarcode(s.product_barcode)?.is_reusable);
-    if(recyclable.length){const{data:ex}=await supabase.from('reusable_tracking').select('barcode,use_count').in('barcode',recyclable.map(s=>s.product_barcode));const exMap=Object.fromEntries((ex||[]).map(e=>[e.barcode,e.use_count]));await supabase.from('reusable_tracking').upsert(recyclable.map(s=>({barcode:s.product_barcode,use_count:(exMap[s.product_barcode]||0)+1,current_status:'ready_to_ship',last_shipped_at:new Date().toISOString()})),{onConflict:'barcode'});}
+    if(recyclable.length){
+      const{data:ex}=await supabase.from('reusable_tracking').select('barcode,use_count').in('barcode',recyclable.map(s=>s.product_barcode));
+      const exMap=Object.fromEntries((ex||[]).map(e=>[e.barcode,e.use_count]));
+      const now = new Date().toISOString();
+      await supabase.from('reusable_tracking').upsert(
+        recyclable.map(s=>({
+          barcode: s.product_barcode,
+          use_count: (exMap[s.product_barcode]||0)+1,
+          current_status: 'ready_to_ship',
+          last_shipped_at: now,
+          last_customer: customerName || null,
+        })),
+        {onConflict:'barcode'}
+      );
+    }
     const batchNos=[...new Set(outboundPending.map(s=>s.batch_no).filter(Boolean))]; const shippedAt=new Date().toISOString();
     if(batchNos.length){await Promise.all([...batchNos.map(bNo=>supabase.from('turnover_inventory').update({status:'shipped',updated_at:shippedAt}).eq('batch_no',bNo)),...batchNos.map(bNo=>supabase.from('production_batches').update({status:'shipped',customer:customerName,shipped_at:shippedAt}).eq('batch_no',bNo))]);}
     beep();setOutboundPending([]);fetchTurnover();showAlert(t.msgAutoSuccess);
