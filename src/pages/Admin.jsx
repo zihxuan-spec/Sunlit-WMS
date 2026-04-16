@@ -199,11 +199,13 @@ function ContainersTab({ lang, L, showAlert, showConfirm }) {
               {newCT.is_reusable && (
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
                   <div><label style={lbl}>{L('Max uses','最多次數')}</label><input type="number" value={newCT.max_uses} onChange={e=>setNewCT(v=>({...v,max_uses:e.target.value}))} placeholder="20" style={inp} /></div>
-                  <div><label style={lbl}>{L('Warn at','警告次數')}</label><input type="number" value={newCT.warn_at_uses} onChange={e=>setNewCT(v=>({...v,warn_at_uses:e.target.value}))} placeholder="18" style={inp} /></div></>) }
-              <div style={{display:'flex',gap:8,flexWrap:'wrap'}}><div><label style={lbl}>{L('Fill Min kg','充填下限 kg')}</label><input type="number" step="0.1" value={newCT.fill_min} onChange={e=>setNewCT(v=>({...v,fill_min:e.target.value}))} placeholder="18.0" style={inp} /></div><div><label style={lbl}>{L('Fill Max kg','充填上限 kg')}</label><input type="number" step="0.1" value={newCT.fill_max} onChange={e=>setNewCT(v=>({...v,fill_max:e.target.value}))} placeholder="22.0" style={inp} /></div></div>
-              {newCT.is_reusable && <>
+                  <div><label style={lbl}>{L('Warn at','警告次數')}</label><input type="number" value={newCT.warn_at_uses} onChange={e=>setNewCT(v=>({...v,warn_at_uses:e.target.value}))} placeholder="18" style={inp} /></div>
                 </div>
               )}
+              <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                <div><label style={lbl}>{L('Fill Min kg','充填下限 kg')}</label><input type="number" step="0.1" value={newCT.fill_min} onChange={e=>setNewCT(v=>({...v,fill_min:e.target.value}))} placeholder="18.0" style={inp} /></div>
+                <div><label style={lbl}>{L('Fill Max kg','充填上限 kg')}</label><input type="number" step="0.1" value={newCT.fill_max} onChange={e=>setNewCT(v=>({...v,fill_max:e.target.value}))} placeholder="22.0" style={inp} /></div>
+              </div>
               <div style={{ display:'flex', gap:8 }}>
                 <button className="btn btn-ghost btn-sm" onClick={()=>setShowNewCT(false)}>{L('Cancel','取消')}</button>
                 <button className="btn btn-primary btn-sm" disabled={submitting} onClick={addCT}>{submitting?'...':L('Create','建立')}</button>
