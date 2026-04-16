@@ -247,10 +247,7 @@ export default function MES({ t, lang, currentUser, showAlert }) {
           fillErrors.push(`${bc}: ${lang==='zh'?'充填量':'fill'} ${net.toFixed(1)}kg > ${lang==='zh'?'上限':'max'} ${ct.fill_max}kg`);
         }
       }
-      if (fillErrors.length) return showAlert((lang==='zh'?'充填量超出範圍：
-':'Fill amount out of range:
-') + fillErrors.join('
-'));
+      if (fillErrors.length) return showAlert((lang==='zh'?'充填量超出範圍：':'Fill amount out of range:') + '\n' + fillErrors.join('\n'));
       setIsSubmitting(true);
       const results = await Promise.allSettled(scannedList.map(bc => {
         const w = weightData[bc] || {};
