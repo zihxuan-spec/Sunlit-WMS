@@ -38,14 +38,14 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
   const [detHist, setDetHist] = useState([]);
   const [editLoc, setEditLoc] = useState(null);
   const [masterModal, setMasterModal] = useState(null);
-  const [masterForm, setMasterForm] = useState({ part_number:'', model:'', description:'', unit:'PCS', safety_stock:'0', department:'' });
+  const [masterForm, setMasterForm] = useState({ part_number:'', model:'', description:'', unit:'PCS', safety_stock:'0', departments:[] });
   const [masterFb, setMasterFb] = useState('');
   const [masterSubmitting, setMasterSubmitting] = useState(false);
 
   const isAdmin = userRole === 'Admin';
   const dept = isAdmin ? adminDept : userRole;
   const L = (en, zh) => lang === 'zh' ? zh : en;
-  const applyDept = (q) => dept !== 'All' ? q.eq('department', dept) : q;
+  const applyDept = (q) => dept !== 'All' ? q.contains('departments', [dept]) : q;
 
   const fetchDepartments = useCallback(async () => {
     const { data } = await supabase.from('sp_departments').select('name').eq('active', true).order('sort_order');
@@ -175,8 +175,8 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
     setDetItem(d=>({...d,location:newLoc}));setEditLoc(null);fetchInventory();
   };
 
-  const openCreate=()=>{setMasterForm({part_number:'',model:'',description:'',unit:'PCS',safety_stock:'0',department:dept!=='All'?dept:''});setMasterFb('');setMasterModal('create');};
-  const openEdit=(item)=>{setMasterForm({part_number:item.part_number,model:item.model||'',description:item.description||'',unit:item.unit||'PCS',safety_stock:String(item.safety_stock||0),department:item.department});setMasterFb('');setMasterModal(item);};
+  const openCreate=()=>{setMasterForm({part_number:'',model:'',description:'',unit:'PCS',safety_stock:'0',departments:dept!=='All'?[dept]:[]});setMasterFb('');setMasterModal('create');};
+  const openEdit=(item)=>{setMasterForm({part_number:item.part_number,model:item.model||'',description:item.description||'',unit:item.unit||'PCS',safety_stock:String(item.safety_stock||0),departments:Array.isArray(item.departments)?item.departments:(item.department?[item.department]:[])});setMasterFb('');setMasterModal(item);};
 
   const checkPn=async(pn)=>{
     if(!pn||masterModal!=='create'){setMasterFb('');return;}
@@ -185,11 +185,11 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
   };
 
   const submitMaster=async()=>{
-    const{part_number,model,description,unit,safety_stock,department}=masterForm;
+    const{part_number,model,description,unit,safety_stock,departments}=masterForm;
     if(!part_number.trim()){showAlert(L('Part number required','料號為必填'));return;}
-    if(!department){showAlert(L('Select department','請選擇部門'));return;}
+    if(!departments||departments.length===0){showAlert(L('Select at least one department','請至少選擇一個部門'));return;}
     setMasterSubmitting(true);
-    const payload={model,description,unit,safety_stock:parseInt(safety_stock)||0,department};
+    const payload={model,description,unit,safety_stock:parseInt(safety_stock)||0,departments};
     const{error}=masterModal==='create'
       ?await supabase.from('sp_master').insert({part_number:part_number.trim(),...payload})
       :await supabase.from('sp_master').update(payload).eq('part_number',part_number);
@@ -222,7 +222,16 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
   const invPages=Math.ceil(invTotal/PAGE_SIZE)||1;
   const masterPages=Math.ceil(masterTotal/PAGE_SIZE)||1;
   const fmtDate=(d)=>new Date(d).toLocaleString(lang==='zh'?'zh-TW':'en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-  const deptBadge=(d)=>d==='QC'?<span className="badge badge-amber">{d}</span>:d==='Facility'?<span className="badge badge-green" style={{background:'#d1fae5',color:'#065f46'}}>{d}</span>:<span className="badge badge-gray">{d}</span>;
+  const deptColor=(d)=>{
+    if(d==='QC')       return {background:'#fef3c7',color:'#b45309'};
+    if(d==='Facility') return {background:'#d1fae5',color:'#065f46'};
+    if(d==='Production') return {background:'#ede9fe',color:'#7c3aed'};
+    return {background:'#f3f4f6',color:'#6b7280'};
+  };
+  const deptBadge=(depts)=>{
+    const arr=Array.isArray(depts)?depts:(depts?[depts]:[]);
+    return <span style={{display:'flex',gap:4,flexWrap:'wrap'}}>{arr.map(d=><span key={d} style={{...deptColor(d),padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:600}}>{d}</span>)}</span>;
+  };
   const statusBadge=(item)=>item.is_critical?<span className="badge badge-red">{L('Critical','缺料')}</span>:item.is_low?<span className="badge badge-amber">{L('Low','低庫存')}</span>:<span className="badge badge-green">{L('OK','正常')}</span>;
 
   const lbl={fontSize:12,fontWeight:600,color:'var(--dk-text-3)',display:'block',marginBottom:4};
@@ -519,10 +528,21 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
           ))}
           <div>
             <label style={lbl}>{L('Department *','部門 *')}</label>
-            <select value={masterForm.department} onChange={e=>setMasterForm(f=>({...f,department:e.target.value}))} style={{width:'100%',boxSizing:'border-box'}}>
-              <option value="">{L('Select...','選擇...')}</option>
-              {departments.map(d=><option key={d} value={d}>{d}</option>)}
-            </select>
+            <div style={{display:'flex',flexWrap:'wrap',gap:8,padding:'8px 0'}}>
+              {departments.map(d=>{
+                const checked=(masterForm.departments||[]).includes(d);
+                const clr=deptColor(d);
+                return(
+                  <label key={d} style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',padding:'6px 12px',borderRadius:6,border:`1px solid ${checked?clr.color:'#e5e7eb'}`,background:checked?clr.background:'#fff',transition:'all .1s'}}>
+                    <input type="checkbox" checked={checked} onChange={e=>{
+                      setMasterForm(f=>({...f,departments:e.target.checked?[...(f.departments||[]),d]:(f.departments||[]).filter(x=>x!==d)}));
+                    }} style={{display:'none'}}/>
+                    <span style={{color:checked?clr.color:'#6b7280',fontWeight:checked?700:400,fontSize:13}}>{d}</span>
+                    {checked&&<span style={{color:clr.color,fontSize:11}}>✓</span>}
+                  </label>
+                );
+              })}
+            </div>
           </div>
         </div>
         <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginTop:16}}>
