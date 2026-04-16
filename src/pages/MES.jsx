@@ -233,6 +233,24 @@ export default function MES({ t, lang, currentUser, showAlert }) {
     if (isFillingStep()) {
       if (!formData.workOrder || !formData.gunNumber) return showAlert(t.msgWorkOrderRequired);
       if (scannedList.some(bc => { const w = weightData[bc]||{}; return !w.empty||!w.setting||!w.filling; })) return showAlert(t.msgFillWeights);
+
+      // Validate fill amount against container type min/max
+      const fillErrors = [];
+      for (const bc of scannedList) {
+        const w   = weightData[bc] || {};
+        const ct  = activeBatchCT;
+        const net = parseFloat(w.filling) - parseFloat(w.empty);
+        if (ct?.fill_min != null && net < ct.fill_min) {
+          fillErrors.push(`${bc}: ${lang==='zh'?'充填量':'fill'} ${net.toFixed(1)}kg < ${lang==='zh'?'下限':'min'} ${ct.fill_min}kg`);
+        }
+        if (ct?.fill_max != null && net > ct.fill_max) {
+          fillErrors.push(`${bc}: ${lang==='zh'?'充填量':'fill'} ${net.toFixed(1)}kg > ${lang==='zh'?'上限':'max'} ${ct.fill_max}kg`);
+        }
+      }
+      if (fillErrors.length) return showAlert((lang==='zh'?'充填量超出範圍：
+':'Fill amount out of range:
+') + fillErrors.join('
+'));
       setIsSubmitting(true);
       const results = await Promise.allSettled(scannedList.map(bc => {
         const w = weightData[bc] || {};
