@@ -395,7 +395,6 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
                     <td style={tdStyle}>{item.department
                       ? <span style={{padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:600,...(item.department==='QC'?{background:'#fef3c7',color:'#b45309'}:item.department==='Facility'?{background:'#d1fae5',color:'#065f46'}:item.department==='Production'?{background:'#ede9fe',color:'#7c3aed'}:{background:'#f3f4f6',color:'#6b7280'})}}>{item.department}</span>
                       : <span style={{color:'var(--lt-text-4)',fontSize:11}}>—</span>}</td>
-                    <td style={tdStyle}>{deptBadge(item.departments || item.department)}</td>
                     <td style={{...tdStyle,textAlign:'center',color:'var(--dk-accent)',fontSize:11,fontWeight:600}}>{L('View','查看')}</td>
                   </tr>
                 ))}
@@ -435,7 +434,6 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
                     <td style={tdStyle}>{item.department
                       ? <span style={{padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:600,...(item.department==='QC'?{background:'#fef3c7',color:'#b45309'}:item.department==='Facility'?{background:'#d1fae5',color:'#065f46'}:item.department==='Production'?{background:'#ede9fe',color:'#7c3aed'}:{background:'#f3f4f6',color:'#6b7280'})}}>{item.department}</span>
                       : <span style={{color:'var(--lt-text-4)',fontSize:11}}>—</span>}</td>
-                    <td style={tdStyle}>{deptBadge(item.departments || item.department)}</td>
                     <td style={tdStyle}>
                       <div style={{display:'flex',gap:6}}>
                         <button className="btn btn-ghost btn-sm" onClick={()=>openEdit(item)}>{L('Edit','編輯')}</button>
