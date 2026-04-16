@@ -7,7 +7,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
   const [tab, setTab] = useState('dashboard');
   const [loading, setLoading] = useState(false);
   const [adminDept, setAdminDept] = useState('All');
-  const [departments, setDepartments] = useState(['QC', 'Facility', 'Production']); // loaded from DB
+  const [departments, setDepartments] = useState([]); // always loaded from sp_departments
   const [inventory, setInventory] = useState([]);
   const [invTotal, setInvTotal] = useState(0);
   const [invPage, setInvPage] = useState(1);
@@ -47,7 +47,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
   const L = (en, zh) => lang === 'zh' ? zh : en;
   // For sp_master: filter by departments array contains user's dept
   const applyMasterDept = (q) => dept !== 'All' ? q.contains('departments', [dept]) : q;
-  // For sp_inventory/view: filter by department column (per-dept stock)
+  // For sp_inventory: filter by department (NULL-safe for admin showing all)
   const applyDept = (q) => dept !== 'All' ? q.eq('department', dept) : q;
 
   const fetchDepartments = useCallback(async () => {
@@ -152,32 +152,15 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
       const r=txRows[i];
       if(!r.id.trim()||!r.qty||Number(r.qty)<=0){showAlert(L(`Row ${i+1}: invalid`,`第${i+1}行資料不完整`));return;}
       if(txType==='receive'&&!r.loc.trim()){showAlert(L(`Row ${i+1}: location required`,`第${i+1}行需填儲位`));return;}
-      items.push({id:r.id.trim(),qty:Number(r.qty),loc:r.loc.trim(),dept:dept!=='All'?dept:''});
+      items.push({id:r.id.trim(),qty:Number(r.qty),loc:r.loc.trim(),dept:dept!=='All'?dept:null});
     }
     showConfirm(L('Post these transactions?','確定過帳？'),async()=>{
       setTxSubmitting(true);
-      const txDept = dept !== 'All' ? dept : '';
+      const txDept = dept !== 'All' ? dept : null;
       const{error}=await supabase.rpc('process_sp_transaction',{tx_type:txType,tx_ref:txRef,tx_user:txUser,tx_items:items});
       setTxSubmitting(false);
       if(error) showAlert(`${L('Failed','失敗')}: ${error.message}`);
       else{
-        // Tag sp_inventory rows with department if not yet set
-        if(txDept){
-          const pns=items.map(i=>i.id);
-          await Promise.all(pns.map(pn=>
-            supabase.from('sp_inventory')
-              .update({department:txDept})
-              .eq('part_number',pn)
-              .eq('department','')
-          ));
-          // Tag recent history with department
-          const since=new Date(Date.now()-5000).toISOString();
-          await supabase.from('sp_history')
-            .update({department:txDept})
-            .in('part_number',pns)
-            .eq('operator_user',txUser)
-            .gte('timestamp',since);
-        }
         setTxOpen(false);fetchDashboard();fetchInventory();
       }
     });
@@ -191,16 +174,17 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
 
   const saveLocation=async(newLoc)=>{
     if(newLoc===detItem.location){setEditLoc(null);return;}
-    const deptKey = detItem.department || (dept !== 'All' ? dept : '');
-    const{data:inv}=await supabase.from('sp_inventory').select('stock').eq('part_number',detItem.part_number).eq('department',deptKey).maybeSingle();
-    if(inv) await supabase.from('sp_inventory').update({location:newLoc,updated_at:new Date().toISOString()}).eq('part_number',detItem.part_number).eq('department',deptKey);
+    const deptKey = detItem.department || (dept !== 'All' ? dept : null);
+    const deptFilter = (q) => deptKey ? q.eq('department', deptKey) : q.is('department', null);
+    const{data:inv}=await deptFilter(supabase.from('sp_inventory').select('stock').eq('part_number',detItem.part_number)).maybeSingle();
+    if(inv) await deptFilter(supabase.from('sp_inventory').update({location:newLoc,updated_at:new Date().toISOString()}).eq('part_number',detItem.part_number));
     else await supabase.from('sp_inventory').insert({part_number:detItem.part_number,location:newLoc,stock:0,department:deptKey});
     await supabase.from('sp_history').insert({part_number:detItem.part_number,action:'Location Change',quantity:0,reference:`${detItem.location||'—'} → ${newLoc}`,operator_user:currentUser,department:deptKey});
     setDetItem(d=>({...d,location:newLoc}));setEditLoc(null);fetchInventory();
   };
 
   const openCreate=()=>{setMasterForm({part_number:'',model:'',description:'',unit:'PCS',safety_stock:'0',departments:dept!=='All'?[dept]:[]});setMasterFb('');setMasterModal('create');};
-  const openEdit=(item)=>{setMasterForm({part_number:item.part_number,model:item.model||'',description:item.description||'',unit:item.unit||'PCS',safety_stock:String(item.safety_stock||0),departments:Array.isArray(item.departments)?item.departments:(item.department?[item.department]:[])});setMasterFb('');setMasterModal(item);};
+  const openEdit=(item)=>{setMasterForm({part_number:item.part_number,model:item.model||'',description:item.description||'',unit:item.unit||'PCS',safety_stock:String(item.safety_stock||0),departments:Array.isArray(item.departments)?item.departments:[]});setMasterFb('');setMasterModal(item);};
 
   const checkPn=async(pn)=>{
     if(!pn||masterModal!=='create'){setMasterFb('');return;}
@@ -246,11 +230,18 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
   const invPages=Math.ceil(invTotal/PAGE_SIZE)||1;
   const masterPages=Math.ceil(masterTotal/PAGE_SIZE)||1;
   const fmtDate=(d)=>new Date(d).toLocaleString(lang==='zh'?'zh-TW':'en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  // Color palette cycles for any department name from sp_departments
+  const DEPT_COLORS = [
+    {background:'#fef3c7',color:'#b45309'}, // amber - QC
+    {background:'#d1fae5',color:'#065f46'}, // green - Facility
+    {background:'#ede9fe',color:'#7c3aed'}, // purple - Production
+    {background:'#dbeafe',color:'#1d4ed8'}, // blue
+    {background:'#fce7f3',color:'#9d174d'}, // pink
+    {background:'#d1fae5',color:'#047857'}, // teal
+  ];
   const deptColor=(d)=>{
-    if(d==='QC')       return {background:'#fef3c7',color:'#b45309'};
-    if(d==='Facility') return {background:'#d1fae5',color:'#065f46'};
-    if(d==='Production') return {background:'#ede9fe',color:'#7c3aed'};
-    return {background:'#f3f4f6',color:'#6b7280'};
+    const idx=departments.indexOf(d);
+    return DEPT_COLORS[idx>=0?idx%DEPT_COLORS.length:DEPT_COLORS.length-1]||{background:'#f3f4f6',color:'#6b7280'};
   };
   const deptBadge=(depts)=>{
     const arr=Array.isArray(depts)?depts:(depts?[depts]:[]);
@@ -393,7 +384,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
                     <td style={{...tdStyle,textAlign:'center'}}><span className="badge badge-gray" style={{fontFamily:'monospace'}}>{item.location||'—'}</span></td>
                     <td style={{...tdStyle,textAlign:'center',fontWeight:700,color:item.is_critical?'#ef4444':item.is_low?'#f59e0b':'var(--dk-text)'}}>{item.stock}</td>
                     <td style={tdStyle}>{item.department
-                      ? <span style={{padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:600,...(item.department==='QC'?{background:'#fef3c7',color:'#b45309'}:item.department==='Facility'?{background:'#d1fae5',color:'#065f46'}:item.department==='Production'?{background:'#ede9fe',color:'#7c3aed'}:{background:'#f3f4f6',color:'#6b7280'})}}>{item.department}</span>
+                      ? <span style={{padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:600,...deptColor(item.department)}}>{item.department}</span>
                       : <span style={{color:'var(--lt-text-4)',fontSize:11}}>—</span>}</td>
                     <td style={{...tdStyle,textAlign:'center',color:'var(--dk-accent)',fontSize:11,fontWeight:600}}>{L('View','查看')}</td>
                   </tr>
@@ -432,7 +423,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
                     <td style={{...tdStyle,textAlign:'center'}}>{item.unit}</td>
                     <td style={{...tdStyle,textAlign:'center'}}>{item.safety_stock}</td>
                     <td style={tdStyle}>{item.department
-                      ? <span style={{padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:600,...(item.department==='QC'?{background:'#fef3c7',color:'#b45309'}:item.department==='Facility'?{background:'#d1fae5',color:'#065f46'}:item.department==='Production'?{background:'#ede9fe',color:'#7c3aed'}:{background:'#f3f4f6',color:'#6b7280'})}}>{item.department}</span>
+                      ? <span style={{padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:600,...deptColor(item.department)}}>{item.department}</span>
                       : <span style={{color:'var(--lt-text-4)',fontSize:11}}>—</span>}</td>
                     <td style={tdStyle}>
                       <div style={{display:'flex',gap:6}}>
