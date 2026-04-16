@@ -616,7 +616,7 @@ function SpMasterTab({ lang, L, showAlert, showConfirm }) {
   const [search, setSearch] = useState('');
   const [filterDept, setFilterDept] = useState('All');
   const [modal, setModal] = useState(null); // null | 'create' | item
-  const [form, setForm] = useState({ part_number:'', model:'', description:'', unit:'PCS', safety_stock:'0', department:'' });
+  const [form, setForm] = useState({ part_number:'', model:'', description:'', unit:'PCS', safety_stock:'0', departments:[] });
   const [fb, setFb] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -632,8 +632,8 @@ function SpMasterTab({ lang, L, showAlert, showConfirm }) {
     setLoading(false);
   };
 
-  const openCreate = () => { setForm({ part_number:'', model:'', description:'', unit:'PCS', safety_stock:'0', department:'' }); setFb(''); setModal('create'); };
-  const openEdit = (item) => { setForm({ part_number:item.part_number, model:item.model||'', description:item.description||'', unit:item.unit||'PCS', safety_stock:String(item.safety_stock||0), department:item.department }); setFb(''); setModal(item); };
+  const openCreate = () => { setForm({ part_number:'', model:'', description:'', unit:'PCS', safety_stock:'0', departments:[] }); setFb(''); setModal('create'); };
+  const openEdit = (item) => { setForm({ part_number:item.part_number, model:item.model||'', description:item.description||'', unit:item.unit||'PCS', safety_stock:String(item.safety_stock||0), departments:Array.isArray(item.departments)?item.departments:(item.department?[item.department]:[]) }); setFb(''); setModal(item); };
 
   const checkPn = async (pn) => {
     if (!pn || modal !== 'create') { setFb(''); return; }
@@ -711,7 +711,11 @@ function SpMasterTab({ lang, L, showAlert, showConfirm }) {
                     <td style={{ textAlign:'center' }}>{item.unit}</td>
                     <td style={{ textAlign:'center' }}>{item.safety_stock}</td>
                     <td>
-                      <span className={`badge ${item.department==='QC'?'badge-blue':'badge-purple'}`}>{item.department}</span>
+                      {(() => {
+                        const arr = Array.isArray(item.departments)?item.departments:(item.department?[item.department]:[]);
+                        const clr = (d) => d==='QC'?{background:'#fef3c7',color:'#b45309'}:d==='Facility'?{background:'#d1fae5',color:'#065f46'}:d==='Production'?{background:'#ede9fe',color:'#7c3aed'}:{background:'#f3f4f6',color:'#6b7280'};
+                        return <span style={{display:'flex',gap:4,flexWrap:'wrap'}}>{arr.map(d=><span key={d} style={{...clr(d),padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:600}}>{d}</span>)}</span>;
+                      })()}
                     </td>
                     <td>
                       <div style={{ display:'flex', gap:6 }}>
