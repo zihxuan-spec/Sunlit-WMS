@@ -45,7 +45,10 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
   const isAdmin = userRole === 'Admin';
   const dept = isAdmin ? adminDept : userRole;
   const L = (en, zh) => lang === 'zh' ? zh : en;
-  const applyDept = (q) => dept !== 'All' ? q.contains('departments', [dept]) : q;
+  // For sp_master: filter by departments array contains user's dept
+  const applyMasterDept = (q) => dept !== 'All' ? q.contains('departments', [dept]) : q;
+  // For sp_inventory/view: filter by department column (per-dept stock)
+  const applyDept = (q) => dept !== 'All' ? q.eq('department', dept) : q;
 
   const fetchDepartments = useCallback(async () => {
     const { data } = await supabase.from('sp_departments').select('name').eq('active', true).order('sort_order');
@@ -68,7 +71,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
   const fetchMaster = useCallback(async (reset = false) => {
     if (reset) setMasterPage(1);
     setLoading(true);
-    let q = applyDept(supabase.from('sp_master').select('*', { count:'exact' }).eq('active', true));
+    let q = applyMasterDept(supabase.from('sp_master').select('*', { count:'exact' }).eq('active', true));
     if (masterSearch) q = q.or(`part_number.ilike.%${masterSearch}%,model.ilike.%${masterSearch}%,description.ilike.%${masterSearch}%`);
     const pg = reset ? 1 : masterPage;
     const { data, count } = await q.range((pg-1)*PAGE_SIZE, pg*PAGE_SIZE-1).order('part_number');
@@ -137,7 +140,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
   const handleAc=(idx,val)=>{
     clearTimeout(acTimer.current); if(!val){setAcData({rowIdx:-1,items:[]});return;}
     acTimer.current=setTimeout(async()=>{
-      const{data}=await applyDept(supabase.from('sp_master').select('part_number,model').eq('active',true)).or(`part_number.ilike.%${val}%,model.ilike.%${val}%`).limit(8);
+      const{data}=await applyMasterDept(supabase.from('sp_master').select('part_number,model').eq('active',true)).or(`part_number.ilike.%${val}%,model.ilike.%${val}%`).limit(8);
       setAcData({rowIdx:idx,items:data||[]});
     },250);
   };
@@ -149,14 +152,34 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
       const r=txRows[i];
       if(!r.id.trim()||!r.qty||Number(r.qty)<=0){showAlert(L(`Row ${i+1}: invalid`,`第${i+1}行資料不完整`));return;}
       if(txType==='receive'&&!r.loc.trim()){showAlert(L(`Row ${i+1}: location required`,`第${i+1}行需填儲位`));return;}
-      items.push({id:r.id.trim(),qty:Number(r.qty),loc:r.loc.trim()});
+      items.push({id:r.id.trim(),qty:Number(r.qty),loc:r.loc.trim(),dept:dept!=='All'?dept:''});
     }
     showConfirm(L('Post these transactions?','確定過帳？'),async()=>{
       setTxSubmitting(true);
+      const txDept = dept !== 'All' ? dept : '';
       const{error}=await supabase.rpc('process_sp_transaction',{tx_type:txType,tx_ref:txRef,tx_user:txUser,tx_items:items});
       setTxSubmitting(false);
       if(error) showAlert(`${L('Failed','失敗')}: ${error.message}`);
-      else{setTxOpen(false);fetchDashboard();fetchInventory();}
+      else{
+        // Tag sp_inventory rows with department if not yet set
+        if(txDept){
+          const pns=items.map(i=>i.id);
+          await Promise.all(pns.map(pn=>
+            supabase.from('sp_inventory')
+              .update({department:txDept})
+              .eq('part_number',pn)
+              .eq('department','')
+          ));
+          // Tag recent history with department
+          const since=new Date(Date.now()-5000).toISOString();
+          await supabase.from('sp_history')
+            .update({department:txDept})
+            .in('part_number',pns)
+            .eq('operator_user',txUser)
+            .gte('timestamp',since);
+        }
+        setTxOpen(false);fetchDashboard();fetchInventory();
+      }
     });
   };
 
@@ -168,10 +191,11 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
 
   const saveLocation=async(newLoc)=>{
     if(newLoc===detItem.location){setEditLoc(null);return;}
-    const{data:inv}=await supabase.from('sp_inventory').select('stock').eq('part_number',detItem.part_number).maybeSingle();
-    if(inv) await supabase.from('sp_inventory').update({location:newLoc,updated_at:new Date().toISOString()}).eq('part_number',detItem.part_number);
-    else await supabase.from('sp_inventory').insert({part_number:detItem.part_number,location:newLoc,stock:0});
-    await supabase.from('sp_history').insert({part_number:detItem.part_number,action:'Location Change',quantity:0,reference:`${detItem.location||'—'} → ${newLoc}`,operator_user:currentUser});
+    const deptKey = detItem.department || (dept !== 'All' ? dept : '');
+    const{data:inv}=await supabase.from('sp_inventory').select('stock').eq('part_number',detItem.part_number).eq('department',deptKey).maybeSingle();
+    if(inv) await supabase.from('sp_inventory').update({location:newLoc,updated_at:new Date().toISOString()}).eq('part_number',detItem.part_number).eq('department',deptKey);
+    else await supabase.from('sp_inventory').insert({part_number:detItem.part_number,location:newLoc,stock:0,department:deptKey});
+    await supabase.from('sp_history').insert({part_number:detItem.part_number,action:'Location Change',quantity:0,reference:`${detItem.location||'—'} → ${newLoc}`,operator_user:currentUser,department:deptKey});
     setDetItem(d=>({...d,location:newLoc}));setEditLoc(null);fetchInventory();
   };
 
@@ -368,6 +392,9 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
                     <td style={{...tdStyle,fontSize:12,color:'var(--dk-text-3)',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.description}</td>
                     <td style={{...tdStyle,textAlign:'center'}}><span className="badge badge-gray" style={{fontFamily:'monospace'}}>{item.location||'—'}</span></td>
                     <td style={{...tdStyle,textAlign:'center',fontWeight:700,color:item.is_critical?'#ef4444':item.is_low?'#f59e0b':'var(--dk-text)'}}>{item.stock}</td>
+                    <td style={tdStyle}>{item.department
+                      ? <span style={{padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:600,...(item.department==='QC'?{background:'#fef3c7',color:'#b45309'}:item.department==='Facility'?{background:'#d1fae5',color:'#065f46'}:item.department==='Production'?{background:'#ede9fe',color:'#7c3aed'}:{background:'#f3f4f6',color:'#6b7280'})}}>{item.department}</span>
+                      : <span style={{color:'var(--lt-text-4)',fontSize:11}}>—</span>}</td>
                     <td style={tdStyle}>{deptBadge(item.departments || item.department)}</td>
                     <td style={{...tdStyle,textAlign:'center',color:'var(--dk-accent)',fontSize:11,fontWeight:600}}>{L('View','查看')}</td>
                   </tr>
@@ -405,6 +432,9 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
                     <td style={{...tdStyle,color:'var(--dk-text-3)',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.description}</td>
                     <td style={{...tdStyle,textAlign:'center'}}>{item.unit}</td>
                     <td style={{...tdStyle,textAlign:'center'}}>{item.safety_stock}</td>
+                    <td style={tdStyle}>{item.department
+                      ? <span style={{padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:600,...(item.department==='QC'?{background:'#fef3c7',color:'#b45309'}:item.department==='Facility'?{background:'#d1fae5',color:'#065f46'}:item.department==='Production'?{background:'#ede9fe',color:'#7c3aed'}:{background:'#f3f4f6',color:'#6b7280'})}}>{item.department}</span>
+                      : <span style={{color:'var(--lt-text-4)',fontSize:11}}>—</span>}</td>
                     <td style={tdStyle}>{deptBadge(item.departments || item.department)}</td>
                     <td style={tdStyle}>
                       <div style={{display:'flex',gap:6}}>
