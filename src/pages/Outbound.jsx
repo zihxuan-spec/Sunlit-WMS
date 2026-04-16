@@ -157,9 +157,9 @@ export default function Outbound({
 
       {/* Pending shipment list */}
       {outboundPending.length > 0 && (
-        <div className="card" style={{ border: '1px solid var(--dk-danger)', marginBottom: 14 }}>
+        <div className="card" style={{ border: '1px solid #fca5a5', marginBottom: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <span className="card-title" style={{ color: 'var(--dk-danger)' }}>
+            <span className="card-title" style={{ color: '#dc2626' }}>
               {t.outStep2.replace('{n}', outboundPending.length)}
             </span>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -167,18 +167,50 @@ export default function Outbound({
               <button className="btn btn-danger btn-sm" disabled={isSubmitting} onClick={handleShipClick}>{isSubmitting ? "..." : t.btnShipAll}</button>
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {outboundPending.map((shelf, idx) => (
-              <div key={shelf.id} className="outbound-item">
-                <div className="route-badge">{idx + 1}</div>
-                <div className="outbound-content">
-                  <div style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700 }}>{shelf.batch_no || shelf.product_barcode}</div>
-                  <div className="outbound-loc">{shelf.id} — {shelf.zone}</div>
+              <div key={shelf.id} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 12px',
+                background: '#fff5f5',
+                border: '1px solid #fca5a5',
+                borderLeft: '3px solid #dc2626',
+                borderRadius: 6,
+              }}>
+                {/* 序號 */}
+                <div style={{
+                  width: 24, height: 24, borderRadius: '50%',
+                  background: '#dc2626', color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 11, fontWeight: 700, flexShrink: 0,
+                }}>{idx + 1}</div>
+
+                {/* 內容 */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: '#7f1d1d' }}>
+                    {shelf.batch_no || shelf.product_barcode}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#b91c1c', marginTop: 2, fontWeight: 500 }}>
+                    {shelf.id} — {shelf.zone}
+                  </div>
                   {shelf.product_barcode && shelf.batch_no && (
-                    <div style={{ fontSize: 10, color: 'var(--dk-text-4)', marginTop: 1 }}>{shelf.product_barcode}</div>
+                    <div style={{ fontSize: 10, color: '#dc2626', marginTop: 1, opacity: 0.7 }}>
+                      {shelf.product_barcode}
+                    </div>
                   )}
                 </div>
-                <div className="delete-btn" onClick={() => setOutboundPending(p => p.filter(x => x.id !== shelf.id))}>x</div>
+
+                {/* 刪除 */}
+                <div onClick={() => setOutboundPending(p => p.filter(x => x.id !== shelf.id))}
+                  style={{
+                    width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: '#fee2e2', color: '#dc2626', cursor: 'pointer',
+                    fontSize: 12, fontWeight: 700, transition: 'background .1s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background='#dc2626' || (e.currentTarget.style.color='#fff')}
+                  onMouseLeave={e => e.currentTarget.style.background='#fee2e2' || (e.currentTarget.style.color='#dc2626')}
+                >×</div>
               </div>
             ))}
           </div>
