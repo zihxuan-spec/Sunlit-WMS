@@ -134,8 +134,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
     if(dept !== 'All'){
       const{data:md}=await supabase.from('sp_master').select('part_number,departments').eq('part_number',pn).eq('active',true).maybeSingle();
       if(md && Array.isArray(md.departments) && !md.departments.includes(dept)){
-        showAlert((lang==='zh'
-          ?(lang==='zh'?'料號 '+pn+' 不屬於 '+dept+' 部門，無法操作':'Part '+pn+' is not assigned to '+dept+' department')));
+        showAlert(lang==='zh'?'料號 '+pn+' 不屬於 '+dept+' 部門，無法操作':'Part '+pn+' is not assigned to '+dept+' department');
         setTxRows(r=>r.map((x,i)=>i===idx?{...x,id:'',info:'',loc:''}:x));
         return;
       }
