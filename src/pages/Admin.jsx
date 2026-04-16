@@ -621,13 +621,19 @@ function SpMasterTab({ lang, L, showAlert, showConfirm }) {
   const [form, setForm] = useState({ part_number:'', model:'', description:'', unit:'PCS', safety_stock:'0', departments:[] });
   const [fb, setFb] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [departments, setDepartments] = useState([]);
+
+  useEffect(() => {
+    supabase.from('sp_departments').select('name').eq('active', true).order('sort_order')
+      .then(({ data }) => { if (data?.length) setDepartments(data.map(d => d.name)); });
+  }, []);
 
   useEffect(() => { fetchMaster(); }, [search, filterDept]);
 
   const fetchMaster = async () => {
     setLoading(true);
     let q = supabase.from('sp_master').select('*', { count: 'exact' }).eq('active', true).order('part_number');
-    if (filterDept !== 'All') q = q.eq('department', filterDept);
+    if (filterDept !== 'All') q = q.contains('departments', [filterDept]);
     if (search) q = q.or(`part_number.ilike.%${search}%,model.ilike.%${search}%,description.ilike.%${search}%`);
     const { data } = await q;
     setMaster(data || []);
@@ -678,6 +684,7 @@ function SpMasterTab({ lang, L, showAlert, showConfirm }) {
           onChange={e => setSearch(e.target.value)} style={{ width:220, ...inp }} />
         <select value={filterDept} onChange={e => setFilterDept(e.target.value)} style={{ ...inp, margin:0 }}>
           <option value="All">{L('All Depts','全部')}</option>
+          {departments.map(d => <option key={d} value={d}>{d}</option>)}
           <option value="QC">QC</option>
           <option value="Facility">Facility</option>
         </select>
