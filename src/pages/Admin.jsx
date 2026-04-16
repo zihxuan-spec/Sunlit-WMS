@@ -650,11 +650,11 @@ function SpMasterTab({ lang, L, showAlert, showConfirm }) {
   };
 
   const submit = async () => {
-    const { part_number, model, description, unit, safety_stock, department } = form;
+    const { part_number, model, description, unit, safety_stock, departments: formDepts } = form;
     if (!part_number.trim()) { showAlert(L('Part number required','料號為必填')); return; }
-    if (!department) { showAlert(L('Select department','請選擇部門')); return; }
+    if (!formDepts || formDepts.length === 0) { showAlert(L('Select at least one department','請至少選擇一個部門')); return; }
     setSubmitting(true);
-    const payload = { model, description, unit, safety_stock: parseInt(safety_stock)||0, department };
+    const payload = { model, description, unit, safety_stock: parseInt(safety_stock)||0, departments: formDepts };
     const { error } = modal === 'create'
       ? await supabase.from('sp_master').insert({ part_number: part_number.trim(), ...payload })
       : await supabase.from('sp_master').update(payload).eq('part_number', part_number);
@@ -770,12 +770,22 @@ function SpMasterTab({ lang, L, showAlert, showConfirm }) {
                 </div>
               ))}
               <div>
-                <label style={lbl}>{L('Department *','部門 *')}</label>
-                <select value={form.department} onChange={e => setForm(f=>({...f,department:e.target.value}))}
-                  style={{ ...inp, margin:0, width:'100%', boxSizing:'border-box' }}>
-                  <option value="">{L('Select...','選擇...')}</option>
-                  {departments.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
+                <label style={lbl}>{L('Department *','部門 *')} <span style={{fontWeight:400,color:'var(--lt-text-3)',fontSize:11}}>{L('(multi-select)','（可多選）')}</span></label>
+                <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:4}}>
+                  {departments.map(d => {
+                    const checked = (form.departments||[]).includes(d);
+                    const clr = d==='QC'?{bg:'#fef3c7',cl:'#b45309'}:d==='Facility'?{bg:'#d1fae5',cl:'#065f46'}:d==='Production'?{bg:'#ede9fe',cl:'#7c3aed'}:{bg:'#f3f4f6',cl:'#6b7280'};
+                    return (
+                      <label key={d} style={{display:'flex',alignItems:'center',gap:5,cursor:'pointer',padding:'6px 12px',borderRadius:6,border:`1px solid ${checked?clr.cl:'#e5e7eb'}`,background:checked?clr.bg:'#fff',transition:'all .1s'}}>
+                        <input type="checkbox" checked={checked}
+                          onChange={e => setForm(f => ({...f, departments: e.target.checked ? [...(f.departments||[]),d] : (f.departments||[]).filter(x=>x!==d)}))}
+                          style={{display:'none'}}/>
+                        <span style={{color:checked?clr.cl:'#6b7280',fontWeight:checked?700:400,fontSize:13}}>{d}</span>
+                        {checked && <span style={{fontSize:11,color:clr.cl}}>✓</span>}
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             </div>
             <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:16 }}>
