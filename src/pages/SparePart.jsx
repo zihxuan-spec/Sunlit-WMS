@@ -176,9 +176,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
         return !Array.isArray(m.departments) || !m.departments.includes(dept);
       });
       if(invalid.length>0){
-        showAlert((lang==='zh'
-          ?(lang==='zh'?'以下料號不屬於 '+dept+' 部門，無法操作：':'These parts are not assigned to '+dept+':')
-          +'\n'+ invalid.map(i=>i.id).join('\n'));
+        showAlert(lang==='zh'?'料號 '+pn+' 不屬於 '+dept+' 部門，無法操作':'Part '+pn+' is not assigned to '+dept+' department');
         return;
       }
     }
