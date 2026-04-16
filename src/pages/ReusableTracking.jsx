@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../config/supabaseClient';
 
 export default function ReusableTracking({ t, lang, showAlert }) {
@@ -19,6 +19,44 @@ export default function ReusableTracking({ t, lang, showAlert }) {
     if (error) { showAlert(t.msgFail); setLoading(false); return; }
     if (trackData) setTrackingList(trackData);
     setLoading(false);
+  };
+
+  const exportExcel = async () => {
+    // Fetch full shipment history from shelf_history for all reusable barcodes
+    const barcodes = trackingList.map(r => r.barcode);
+    if (!barcodes.length) return showAlert(lang === 'zh' ? '尚無資料' : 'No data to export');
+
+    const { data: history } = await supabase
+      .from('shelf_history')
+      .select('*')
+      .in('product_barcode', barcodes)
+      .eq('action', 'outbound_customer')
+      .order('created_at', { ascending: false });
+
+    const rows = (history || []).map(h => {
+      const ct = containerTypes.find(ct => h.product_barcode?.startsWith(ct.barcode_prefix));
+      return {
+        [lang === 'zh' ? '桶號' : 'Barcode']: h.product_barcode || '',
+        [lang === 'zh' ? '包材類型' : 'Type']: ct?.name || '',
+        [lang === 'zh' ? '批號' : 'Batch No']: h.batch_no || '',
+        [lang === 'zh' ? '操作人員' : 'Operator']: h.operator || '',
+        [lang === 'zh' ? '出貨時間' : 'Shipped At']: h.created_at ? new Date(h.created_at).toLocaleString() : '',
+        [lang === 'zh' ? '貨架' : 'Shelf']: h.shelf_id || '',
+      };
+    });
+
+    if (!rows.length) return showAlert(lang === 'zh' ? '尚無出貨歷史' : 'No shipment history found');
+
+    const headers = Object.keys(rows[0]);
+    const csv = '\uFEFF' + [
+      headers.join(','),
+      ...rows.map(r => headers.map(h => `"${String(r[h]).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    a.download = `ReusableTracking_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
   };
 
   const handleConfirmReturn = async (barcode) => {
@@ -72,7 +110,10 @@ export default function ReusableTracking({ t, lang, showAlert }) {
             {lang === 'zh' ? '循環包材生命週期追蹤 · 入庫時自動偵測回廠' : 'Lifecycle tracking · Auto-detected on inbound scan'}
           </div>
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={fetchData}>{lang === 'zh' ? '重新整理' : 'Refresh'}</button>
+        <div style={{ display:'flex', gap:8 }}>
+          <button className="btn btn-ghost btn-sm" onClick={fetchData}>{lang === 'zh' ? '重新整理' : 'Refresh'}</button>
+          <button className="btn btn-success btn-sm" onClick={exportExcel}>⬇ {lang === 'zh' ? '匯出歷史' : 'Export History'}</button>
+        </div>
       </div>
 
       {/* Summary */}
