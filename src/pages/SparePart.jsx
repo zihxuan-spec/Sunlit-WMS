@@ -368,7 +368,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
                     <td style={{...tdStyle,fontSize:12,color:'var(--dk-text-3)',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.description}</td>
                     <td style={{...tdStyle,textAlign:'center'}}><span className="badge badge-gray" style={{fontFamily:'monospace'}}>{item.location||'—'}</span></td>
                     <td style={{...tdStyle,textAlign:'center',fontWeight:700,color:item.is_critical?'#ef4444':item.is_low?'#f59e0b':'var(--dk-text)'}}>{item.stock}</td>
-                    <td style={tdStyle}>{deptBadge(item.department)}</td>
+                    <td style={tdStyle}>{deptBadge(item.departments || item.department)}</td>
                     <td style={{...tdStyle,textAlign:'center',color:'var(--dk-accent)',fontSize:11,fontWeight:600}}>{L('View','查看')}</td>
                   </tr>
                 ))}
@@ -405,7 +405,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
                     <td style={{...tdStyle,color:'var(--dk-text-3)',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.description}</td>
                     <td style={{...tdStyle,textAlign:'center'}}>{item.unit}</td>
                     <td style={{...tdStyle,textAlign:'center'}}>{item.safety_stock}</td>
-                    <td style={tdStyle}>{deptBadge(item.department)}</td>
+                    <td style={tdStyle}>{deptBadge(item.departments || item.department)}</td>
                     <td style={tdStyle}>
                       <div style={{display:'flex',gap:6}}>
                         <button className="btn btn-ghost btn-sm" onClick={()=>openEdit(item)}>{L('Edit','編輯')}</button>
@@ -495,7 +495,7 @@ export default function SparePart({ lang, currentUser, userRole, showAlert, show
               <span style={{fontSize:11,marginLeft:4}}>✏️</span>
             </span>)}
           </div>
-          <div>{deptBadge(detItem.department)}</div>
+          <div>{deptBadge(detItem.departments || detItem.department)}</div>
         </div>
         <div style={{fontSize:11,fontWeight:700,color:'var(--dk-text-3)',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:8}}>{L('History','異動記錄')}</div>
         <div className="history-table-container" style={{maxHeight:260}}>
