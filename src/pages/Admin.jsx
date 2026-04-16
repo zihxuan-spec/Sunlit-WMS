@@ -685,8 +685,6 @@ function SpMasterTab({ lang, L, showAlert, showConfirm }) {
         <select value={filterDept} onChange={e => setFilterDept(e.target.value)} style={{ ...inp, margin:0 }}>
           <option value="All">{L('All Depts','全部')}</option>
           {departments.map(d => <option key={d} value={d}>{d}</option>)}
-          <option value="QC">QC</option>
-          <option value="Facility">Facility</option>
         </select>
         <button className="btn btn-primary btn-sm" onClick={openCreate} style={{ marginLeft:'auto' }}>
           + {L('New Part','新增物料')}
@@ -776,8 +774,7 @@ function SpMasterTab({ lang, L, showAlert, showConfirm }) {
                 <select value={form.department} onChange={e => setForm(f=>({...f,department:e.target.value}))}
                   style={{ ...inp, margin:0, width:'100%', boxSizing:'border-box' }}>
                   <option value="">{L('Select...','選擇...')}</option>
-                  <option value="QC">QC</option>
-                  <option value="Facility">Facility</option>
+                  {departments.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
             </div>
