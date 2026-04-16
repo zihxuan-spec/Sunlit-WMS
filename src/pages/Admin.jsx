@@ -641,7 +641,7 @@ function SpMasterTab({ lang, L, showAlert, showConfirm }) {
   };
 
   const openCreate = () => { setForm({ part_number:'', model:'', description:'', unit:'PCS', safety_stock:'0', departments:[] }); setFb(''); setModal('create'); };
-  const openEdit = (item) => { setForm({ part_number:item.part_number, model:item.model||'', description:item.description||'', unit:item.unit||'PCS', safety_stock:String(item.safety_stock||0), departments:Array.isArray(item.departments)?item.departments:(item.department?[item.department]:[]) }); setFb(''); setModal(item); };
+  const openEdit = (item) => { setForm({ part_number:item.part_number, model:item.model||'', description:item.description||'', unit:item.unit||'PCS', safety_stock:String(item.safety_stock||0), departments:Array.isArray(item.departments)?item.departments:[] }); setFb(''); setModal(item); };
 
   const checkPn = async (pn) => {
     if (!pn || modal !== 'create') { setFb(''); return; }
@@ -719,8 +719,9 @@ function SpMasterTab({ lang, L, showAlert, showConfirm }) {
                     <td style={{ textAlign:'center' }}>{item.safety_stock}</td>
                     <td>
                       {(() => {
-                        const arr = Array.isArray(item.departments)?item.departments:(item.department?[item.department]:[]);
-                        const clr = (d) => d==='QC'?{background:'#fef3c7',color:'#b45309'}:d==='Facility'?{background:'#d1fae5',color:'#065f46'}:d==='Production'?{background:'#ede9fe',color:'#7c3aed'}:{background:'#f3f4f6',color:'#6b7280'};
+                        const arr = Array.isArray(item.departments)?item.departments:[];
+                        const PALETTES=[{background:'#fef3c7',color:'#b45309'},{background:'#d1fae5',color:'#065f46'},{background:'#ede9fe',color:'#7c3aed'},{background:'#dbeafe',color:'#1d4ed8'},{background:'#fce7f3',color:'#9d174d'}];
+                        const clr = (d) => { const i=departments.indexOf(d); return PALETTES[i>=0?i%PALETTES.length:PALETTES.length-1]||{background:'#f3f4f6',color:'#6b7280'}; };
                         return <span style={{display:'flex',gap:4,flexWrap:'wrap'}}>{arr.map(d=><span key={d} style={{...clr(d),padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:600}}>{d}</span>)}</span>;
                       })()}
                     </td>
